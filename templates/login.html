@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Login — Smart Hospital System{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:520px; padding-top:60px;">
+
+  {% if error %}
+  <div
+    style="background: rgba(255, 71, 87, 0.15); border: 1px solid var(--rose); border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; color: var(--rose); font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; text-align: center;">
+    ⚠ {{ error }}
+  </div>
+  {% endif %}
+
+  <div class="glass-card" style="padding: 36px;">
+    <div style="text-align:center; margin-bottom: 24px;">
+      <span class="status-badge"><span class="status-dot"></span>AUTHENTICATION TERMINAL</span>
+      <h2 style="font-size:1.8rem; color:#fff; margin-top:12px;">Portal Login</h2>
+      <p style="font-size:0.88rem; color:var(--ink-muted);">Select your user role and log in to your account.</p>
+    </div>
+
+    <form action="{{ url_for('login') }}" method="POST" autocomplete="off"
+      style="display:flex; flex-direction:column; gap:16px;">
+      <div>
+        <label
+          style="display:block; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:var(--cyan); margin-bottom:6px;">Select
+          Portal Role</label>
+        <select name="role" id="roleSelect"
+          style="width:100%; padding:12px; border-radius:10px; background:rgba(4,7,17,0.8); border:1px solid var(--border); color:#fff; font-family:inherit;">
+          <option value="patient" {% if default_role != 'doctor' %}selected{% endif %}>Patient Portal</option>
+          <option value="doctor" {% if default_role == 'doctor' %}selected{% endif %}>Doctor Terminal</option>
+          <option value="admin">Administrator Console</option>
+        </select>
+      </div>
+
+      <div>
+        <label
+          style="display:block; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:var(--cyan); margin-bottom:6px;">Username / Phone Number / Doctor Unique ID</label>
+        <input type="text" name="username" autocomplete="off" required placeholder="Enter Username, Phone, or Doctor Unique ID (e.g. DOC-2026-1001)"
+          style="width:100%; padding:12px; border-radius:10px; background:rgba(4,7,17,0.8); border:1px solid var(--border); color:#fff; font-family:inherit;">
+      </div>
+
+      <div>
+        <label
+          style="display:block; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:var(--cyan); margin-bottom:6px;">Password</label>
+        <input type="password" name="password" autocomplete="new-password" required placeholder="••••••••"
+          style="width:100%; padding:12px; border-radius:10px; background:rgba(4,7,17,0.8); border:1px solid var(--border); color:#fff; font-family:inherit;">
+      </div>
+
+      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center; margin-top:8px;">
+        Sign In to Portal &rarr;
+      </button>
+    </form>
+
+    <div style="text-align:center; margin-top:20px; font-size:0.85rem; color:var(--ink-muted);">
+      Don't have a Health ID yet? <a href="{{ url_for('register') }}"
+        style="color:var(--cyan); font-weight:600;">Register Here</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

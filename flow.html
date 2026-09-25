@@ -1,0 +1,199 @@
+import os
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+pdf_filename = r"C:\Users\lenovo\.gemini\antigravity-ide\brain\655c4dd0-7903-4ceb-9a7f-a0658268058d\website_flow_diagram.pdf"
+
+doc = SimpleDocTemplate(
+    pdf_filename,
+    pagesize=letter,
+    rightMargin=36,
+    leftMargin=36,
+    topMargin=36,
+    bottomMargin=36
+)
+
+styles = getSampleStyleSheet()
+
+# Custom Styles
+title_style = ParagraphStyle(
+    'TitleStyle',
+    parent=styles['Heading1'],
+    fontName='Helvetica-Bold',
+    fontSize=22,
+    leading=26,
+    textColor=colors.HexColor('#1E3A8A'),
+    spaceAfter=6
+)
+
+subtitle_style = ParagraphStyle(
+    'SubTitleStyle',
+    parent=styles['Normal'],
+    fontName='Helvetica',
+    fontSize=11,
+    leading=14,
+    textColor=colors.HexColor('#4B5563'),
+    spaceAfter=15
+)
+
+h2_style = ParagraphStyle(
+    'H2Style',
+    parent=styles['Heading2'],
+    fontName='Helvetica-Bold',
+    fontSize=14,
+    leading=18,
+    textColor=colors.HexColor('#1D4ED8'),
+    spaceBefore=14,
+    spaceAfter=8
+)
+
+body_style = ParagraphStyle(
+    'BodyStyle',
+    parent=styles['Normal'],
+    fontName='Helvetica',
+    fontSize=9.5,
+    leading=13.5,
+    textColor=colors.HexColor('#1F2937')
+)
+
+table_header_style = ParagraphStyle(
+    'TableHeaderStyle',
+    parent=styles['Normal'],
+    fontName='Helvetica-Bold',
+    fontSize=9,
+    leading=11,
+    textColor=colors.white
+)
+
+table_body_style = ParagraphStyle(
+    'TableBodyStyle',
+    parent=styles['Normal'],
+    fontName='Helvetica',
+    fontSize=8.5,
+    leading=11.5,
+    textColor=colors.HexColor('#1F2937')
+)
+
+code_style = ParagraphStyle(
+    'CodeStyle',
+    parent=styles['Normal'],
+    fontName='Courier-Bold',
+    fontSize=8.5,
+    leading=10,
+    textColor=colors.HexColor('#1D4ED8')
+)
+
+story = []
+
+# Title & Subtitle
+story.append(Paragraph("Hospital Management System (HMS)", title_style))
+story.append(Paragraph("System Architecture, User Flow Diagram & Route Documentation", subtitle_style))
+story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#2563EB'), spaceAfter=15))
+
+# Section 1: Overview
+story.append(Paragraph("1. System Architectural Overview", h2_style))
+overview_text = (
+    "The HMS website is a Flask-based Web Application connected to a MySQL database ('hospital'). "
+    "It features role-based access control supporting <b>Patients</b>, <b>Doctors</b>, and <b>System Administrators</b>. "
+    "The core workflows manage patient registration, health ID assignment, OPD appointment booking, "
+    "doctor visit confirmations, digital prescription access, and post-visit ratings."
+)
+story.append(Paragraph(overview_text, body_style))
+story.append(Spacer(1, 10))
+
+# Section 2: User Flow Table
+story.append(Paragraph("2. End-to-End User Flow Matrix", h2_style))
+
+flow_data = [
+    [Paragraph("User Role", table_header_style), Paragraph("Entry Point / Route", table_header_style), Paragraph("Action / Logic", table_header_style), Paragraph("Target Page / Destination", table_header_style)],
+    
+    [Paragraph("<b>Visitor</b>", table_body_style), Paragraph("<code>/</code>", code_style), Paragraph("Browse features & hospital info", table_body_style), Paragraph("index.html", table_body_style)],
+    [Paragraph("<b>Visitor</b>", table_body_style), Paragraph("<code>/about</code>", code_style), Paragraph("View hospital profile & background", table_body_style), Paragraph("about.html", table_body_style)],
+    [Paragraph("<b>Patient</b>", table_body_style), Paragraph("<code>/register</code>", code_style), Paragraph("Register account & auto-generate Health ID (MD-2026-XXXX)", table_body_style), Paragraph("patient_dashboard.html", table_body_style)],
+    [Paragraph("<b>Patient</b>", table_body_style), Paragraph("<code>/patient/login</code>", code_style), Paragraph("Login with Health ID / Phone / Username", table_body_style), Paragraph("patient_dashboard.html", table_body_style)],
+    [Paragraph("<b>Patient</b>", table_body_style), Paragraph("<code>/appointments</code>", code_style), Paragraph("Book new OPD appointment with symptoms & doctor choice", table_body_style), Paragraph("appointments.html", table_body_style)],
+    [Paragraph("<b>Patient</b>", table_body_style), Paragraph("<code>/prescription/download/&lt;id&gt;</code>", code_style), Paragraph("View & print digital prescription PDF", table_body_style), Paragraph("prescription_pdf.html", table_body_style)],
+    [Paragraph("<b>Patient</b>", table_body_style), Paragraph("<code>/feedback/&lt;id&gt;</code>", code_style), Paragraph("Submit doctor rating (Good/Avg/Poor) & review", table_body_style), Paragraph("feedback.html → Dashboard", table_body_style)],
+    
+    [Paragraph("<b>Doctor</b>", table_body_style), Paragraph("<code>/doctor/login</code>", code_style), Paragraph("Authenticate with Doctor ID & password", table_body_style), Paragraph("doctor_dashboard.html", table_body_style)],
+    [Paragraph("<b>Doctor</b>", table_body_style), Paragraph("<code>/doctor/confirm-appointment</code>", code_style), Paragraph("Assign attending doctor, set visit time & status to 'Confirmed'", table_body_style), Paragraph("doctor_dashboard.html", table_body_style)],
+    
+    [Paragraph("<b>Admin</b>", table_body_style), Paragraph("<code>/admin/login</code>", code_style), Paragraph("Authenticate administrator session", table_body_style), Paragraph("admin_dashboard.html", table_body_style)],
+    [Paragraph("<b>Admin</b>", table_body_style), Paragraph("<code>/admin/add-doctor</code>", code_style), Paragraph("Add new doctor or update credentials", table_body_style), Paragraph("admin_dashboard.html", table_body_style)],
+    [Paragraph("<b>Admin</b>", table_body_style), Paragraph("<code>/admin/delete-doctor/&lt;id&gt;</code>", code_style), Paragraph("Remove doctor record from database", table_body_style), Paragraph("admin_dashboard.html", table_body_style)],
+    [Paragraph("<b>Admin</b>", table_body_style), Paragraph("<code>/admin/delete-patient/&lt;id&gt;</code>", code_style), Paragraph("Delete patient user account", table_body_style), Paragraph("admin_dashboard.html", table_body_style)],
+    [Paragraph("<b>Admin</b>", table_body_style), Paragraph("<code>/admin/cancel-appointment/&lt;id&gt;</code>", code_style), Paragraph("Cancel specific patient appointment", table_body_style), Paragraph("admin_dashboard.html", table_body_style)],
+    [Paragraph("<b>Admin</b>", table_body_style), Paragraph("<code>/admin/change-password</code>", code_style), Paragraph("Update administrator password", table_body_style), Paragraph("admin_dashboard.html", table_body_style)],
+    
+    [Paragraph("<b>All</b>", table_body_style), Paragraph("<code>/logout</code>", code_style), Paragraph("Clear user session", table_body_style), Paragraph("index.html", table_body_style)],
+]
+
+t = Table(flow_data, colWidths=[65, 130, 215, 130])
+t.setStyle(TableStyle([
+    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
+    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ('TOPPADDING', (0, 0), (-1, -1), 4),
+    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8FAFC')]),
+]))
+story.append(t)
+story.append(Spacer(1, 15))
+
+# Section 3: Visual Flow Diagram Description
+story.append(Paragraph("3. Core Application Workflows", h2_style))
+
+p1 = "<b>A. Patient Lifecycle Flow:</b><br/>" \
+     "1. Patient visits homepage <code>/</code> or registers via <code>/register</code>.<br/>" \
+     "2. Unique Health ID (<code>MD-2026-XXXX</code>) is generated and bound to patient account.<br/>" \
+     "3. Patient logs in at <code>/patient/login</code> and accesses <code>patient_dashboard.html</code>.<br/>" \
+     "4. Patient requests appointment via <code>/appointments</code> (Status: <b>Booked</b>).<br/>" \
+     "5. Once Doctor confirms, status updates to <b>Confirmed</b> with assigned visit time.<br/>" \
+     "6. Patient views/downloads E-Prescription via <code>/prescription/download/&lt;id&gt;</code>.<br/>" \
+     "7. Patient completes visit and submits rating & review via <code>/feedback/&lt;id&gt;</code>."
+story.append(Paragraph(p1, body_style))
+story.append(Spacer(1, 8))
+
+p2 = "<b>B. Doctor Consultation Flow:</b><br/>" \
+     "1. Doctor logs in at <code>/doctor/login</code> and views pending patient queue.<br/>" \
+     "2. Doctor reviews symptoms, assigns attending physician & visit time.<br/>" \
+     "3. Submits confirmation form to update appointment status."
+story.append(Paragraph(p2, body_style))
+story.append(Spacer(1, 8))
+
+p3 = "<b>C. Administrator Management Flow:</b><br/>" \
+     "1. Admin logs in at <code>/admin/login</code>.<br/>" \
+     "2. Manages hospital staff (Add/Delete Doctors), patients, and appointment statuses.<br/>" \
+     "3. Monitors performance analytics and doctor rating breakdowns (Good / Average / Poor)."
+story.append(Paragraph(p3, body_style))
+story.append(Spacer(1, 15))
+
+# Section 4: Database Schema Summary
+story.append(Paragraph("4. Database Schema Structure", h2_style))
+
+db_data = [
+    [Paragraph("Table Name", table_header_style), Paragraph("Key Fields", table_header_style), Paragraph("Relationships & Constraints", table_header_style)],
+    [Paragraph("<b>users</b>", table_body_style), Paragraph("id, username, password, role ('admin'|'doctor'|'patient')", table_body_style), Paragraph("Primary authentication table", table_body_style)],
+    [Paragraph("<b>patients</b>", table_body_style), Paragraph("id, user_id, health_id, name, phone, allergy_alerts", table_body_style), Paragraph("Foreign Key: user_id → users(id) ON DELETE CASCADE", table_body_style)],
+    [Paragraph("<b>doctors</b>", table_body_style), Paragraph("id, unique_id, name, password", table_body_style), Paragraph("Unique ID format: DOC-2026-XXXX", table_body_style)],
+    [Paragraph("<b>appointments</b>", table_body_style), Paragraph("id, health_id, age, gender, disease, doctor_name, visit_time, status, visit_done", table_body_style), Paragraph("Status values: Booked, Confirmed, Cancelled", table_body_style)],
+    [Paragraph("<b>feedback</b>", table_body_style), Paragraph("id, appointment_id, health_id, doctor_name, rating, feedback_text", table_body_style), Paragraph("Foreign Key: appointment_id → appointments(id) ON DELETE CASCADE", table_body_style)]
+]
+
+t_db = Table(db_data, colWidths=[90, 240, 210])
+t_db.setStyle(TableStyle([
+    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
+    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ('TOPPADDING', (0, 0), (-1, -1), 4),
+    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8FAFC')]),
+]))
+story.append(t_db)
+
+doc.build(story)
+print("PDF generated successfully at:", pdf_filename)

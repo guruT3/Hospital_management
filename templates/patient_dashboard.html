@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Dashboard — Smart Hospital System{% endblock %}
+
+{% block extra_head %}
+<style>
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .portal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--primary);
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  .health-id-box {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    color: var(--primary);
+    background: rgba(59, 130, 246, 0.1);
+    padding: 10px 18px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: var(--radius-sm);
+  }
+
+  .appointments-section {
+    margin-top: 30px;
+  }
+
+  .section-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .appt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 20px;
+  }
+
+  .appt-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: border-color 0.2s ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .appt-card:hover {
+    border-color: var(--primary);
+  }
+
+  .appt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .status-confirmed {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 700;
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--emerald);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .status-pending {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 700;
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .appt-detail {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .appt-detail strong {
+    color: #ffffff;
+  }
+
+  .doctor-schedule-box {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.86rem;
+  }
+
+  .schedule-confirmed {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #ffffff;
+  }
+
+  .schedule-pending {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: var(--text-muted);
+  }
+
+  .empty-card {
+    background: var(--card-bg);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .patient-medicine-block {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(16,185,129,0.2);
+  }
+
+  .patient-medicine-pill {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+
+  .patient-medicine-pill strong { color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <!-- Dashboard Header -->
+  <div class="dashboard-header">
+    <div>
+      <div class="portal-badge">PATIENT PORTAL</div>
+      <h1 style="font-size:2rem; font-weight:800; color:#fff; margin-top:6px;">
+        Welcome, {{ session.get('name', session.get('username', 'Patient')) }}
+      </h1>
+    </div>
+    <div class="health-id-box">
+      Health ID: <strong>{{ session.get('health_id', 'Not Assigned') }}</strong>
+    </div>
+  </div>
+
+  <!-- Appointments Section -->
+  <div class="appointments-section">
+    <div class="section-title">
+      <span>My Booked Appointments</span>
+      <a href="{{ url_for('appointments') }}" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;">
+        + Book New Appointment
+      </a>
+    </div>
+
+    {% if appointments and appointments|length > 0 %}
+    <div class="appt-grid">
+      {% for appt in appointments %}
+      <div class="appt-card">
+        <div class="appt-header">
+          <span style="font-family:'JetBrains Mono', monospace; font-size:0.8rem; font-weight:700; color:var(--primary);">
+            #APPT-{{ appt.id }}
+          </span>
+          {% if appt.status == 'Confirmed' %}
+          <span class="status-confirmed">✓ CONFIRMED</span>
+          {% else %}
+          <span class="status-pending">⏳ PENDING APPROVAL</span>
+          {% endif %}
+        </div>
+
+        <div class="appt-detail">
+          <strong>Health ID:</strong> {{ appt.health_id }}
+        </div>
+        <div class="appt-detail">
+          <strong>Age / Gender:</strong> {{ appt.age }} Yrs · {{ appt.gender }}
+        </div>
+        <div class="appt-detail" style="margin-top: 6px;">
+          <strong>Disease / Symptoms:</strong><br>
+          <span style="color:var(--text-main); font-size:0.9rem;">{{ appt.disease }}</span>
+        </div>
+
+        <!-- Doctor Visit Schedule Details -->
+        {% if appt.status == 'Confirmed' %}
+        <div class="doctor-schedule-box schedule-confirmed">
+          <div style="font-family:'JetBrains Mono', monospace; font-size:0.74rem; color:var(--emerald); font-weight:700; margin-bottom:4px;">
+            DOCTOR VISITING SCHEDULE
+          </div>
+          <div><strong>Attending Doctor:</strong> {{ appt.doctor_name }}</div>
+          <div><strong>Scheduled Date & Time:</strong> <span style="color:var(--emerald); font-weight:700;">{{ appt.visit_time }}</span></div>
+
+          {% set meds = medicines_map.get(appt.id) %}
+          {% if meds and meds|length > 0 %}
+          <div class="patient-medicine-block">
+            <div style="font-family:'JetBrains Mono', monospace; font-size:0.72rem; color:var(--emerald); font-weight:700; margin-bottom:6px;">
+              PRESCRIBED MEDICINES
+            </div>
+            {% for med in meds %}
+            <div class="patient-medicine-pill">
+              💊 <strong>{{ med.medicine_name }}</strong>{% if med.dosage %} — {{ med.dosage }}{% endif %}{% if med.duration %} · {{ med.duration }}{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="{{ url_for('download_prescription', appointment_id=appt.id) }}" target="_blank" class="btn btn-primary" style="padding:6px 12px; font-size:0.78rem; flex:1; justify-content:center;">
+              📄 Prescription
+            </a>
+            {% if appt.visit_done %}
+            <span class="status-confirmed" style="flex:1; text-align:center; padding:8px;">✓ VISIT COMPLETED</span>
+            {% else %}
+            <a href="{{ url_for('feedback_form', appointment_id=appt.id) }}" class="btn btn-outline" style="padding:6px 12px; font-size:0.78rem; flex:1; justify-content:center; border-color:var(--emerald); color:var(--emerald);">
+              ✅ Visit Done
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="doctor-schedule-box schedule-pending">
+          <div style="font-family:'JetBrains Mono', monospace; font-size:0.74rem; color:#f59e0b; font-weight:700; margin-bottom:2px;">
+            DOCTOR VISITING SCHEDULE
+          </div>
+          <div>Doctor Name & Visit Time: <em>Awaiting doctor schedule confirmation</em></div>
+        </div>
+        {% endif %}
+
+        <div style="margin-top: auto; padding-top: 12px; font-family:'JetBrains Mono', monospace; font-size:0.74rem; color:var(--text-muted);">
+          Booked On: {{ appt.created_at }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-card">
+      <h3 style="color:#ffffff; font-size:1.2rem; margin-bottom:8px;">No Appointments Booked Yet</h3>
+      <p style="font-size:0.9rem; margin-bottom:20px;">You haven't scheduled any OPD appointments under your Health ID.</p>
+      <a href="{{ url_for('appointments') }}" class="btn btn-primary">
+        Book Your First Appointment Now
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

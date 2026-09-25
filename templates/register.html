@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Health ID — Smart Hospital System{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:640px; padding-top:40px;">
+  
+  {% if generated_id %}
+  <!-- Success Notification Box for Generated Health ID -->
+  <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid var(--emerald); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px; box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);">
+    <div style="color: var(--emerald); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 700; text-transform: uppercase;">
+      ✓ REGISTRATION SUCCESSFUL &amp; HEALTH ID GENERATED
+    </div>
+    <div style="font-size: 1.1rem; color: #fff; margin-top: 8px;">
+      Your Permanent Unique Health ID:
+    </div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 2.2rem; font-weight: 700; color: var(--cyan); margin: 10px 0; letter-spacing: 0.05em; text-shadow: 0 0 15px var(--cyan-glow);">
+      {{ generated_id }}
+    </div>
+    <p style="font-size: 0.85rem; color: var(--ink-muted);">Save this Health ID for OPD queuing, doctor appointments, and lab report access.</p>
+    <a href="{{ url_for('login') }}" class="btn btn-primary" style="margin-top: 14px; font-size: 0.88rem; padding: 10px 20px;">
+      Proceed to Login &rarr;
+    </a>
+  </div>
+  {% endif %}
+
+  {% if error %}
+  <div style="background: rgba(255, 71, 87, 0.15); border: 1px solid var(--rose); border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; color: var(--rose); font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; text-align: center;">
+    ⚠ {{ error }}
+  </div>
+  {% endif %}
+
+  <div class="glass-card" style="padding: 36px;">
+    <div style="text-align:center; margin-bottom: 24px;">
+      <span class="status-badge"><span class="status-dot"></span>UNIQUE HEALTH ID ENGINE</span>
+      <h2 style="font-size:1.8rem; color:#fff; margin-top:12px;">Patient Registration</h2>
+      <p style="font-size:0.88rem; color:var(--ink-muted);">Register to generate your permanent Unique Health ID for instant OPD queueing.</p>
+    </div>
+
+    <form action="{{ url_for('register') }}" method="POST" autocomplete="off" style="display:flex; flex-direction:column; gap:16px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div>
+          <label style="display:block; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:var(--cyan); margin-bottom:6px;">Full Name</label>
+          <input type="text" name="full_name" autocomplete="off" required placeholder="e.g. Guru prasad palai" style="width:100%; padding:12px; border-radius:10px; background:rgba(4,7,17,0.8); border:1px solid var(--border); color:#fff;">
+        </div>
+        <div>
+          <label style="display:block; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:var(--cyan); margin-bottom:6px;">Phone Number</label>
+          <input type="tel" name="phone" autocomplete="off" required placeholder="+91 98765 43210" style="width:100%; padding:12px; border-radius:10px; background:rgba(4,7,17,0.8); border:1px solid var(--border); color:#fff;">
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div>
+          <label style="display:block; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:var(--cyan); margin-bottom:6px;">Username (For Login)</label>
+          <input type="text" name="username" autocomplete="off" required placeholder="e.g. guru123" style="width:100%; padding:12px; border-radius:10px; background:rgba(4,7,17,0.8); border:1px solid var(--border); color:#fff;">
+        </div>
+        <div>
+          <label style="display:block; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:var(--cyan); margin-bottom:6px;">Gender</label>
+          <select name="gender" style="width:100%; padding:12px; border-radius:10px; background:rgba(4,7,17,0.8); border:1px solid var(--border); color:#fff;">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label style="display:block; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:var(--rose); margin-bottom:6px;">Medicine Allergy Alerts (If Any)</label>
+        <input type="text" name="allergies" autocomplete="off" placeholder="e.g. Penicillin, Sulfa drugs, Aspirin (or None)" style="width:100%; padding:12px; border-radius:10px; background:rgba(4,7,17,0.8); border:1px solid var(--border); color:#fff;">
+      </div>
+
+      <div>
+        <label style="display:block; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:var(--cyan); margin-bottom:6px;">Set Password</label>
+        <input type="password" name="password" autocomplete="new-password" required placeholder="••••••••" style="width:100%; padding:12px; border-radius:10px; background:rgba(4,7,17,0.8); border:1px solid var(--border); color:#fff;">
+      </div>
+
+      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center; margin-top:8px;">
+        Register &amp; Generate Unique Health ID
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

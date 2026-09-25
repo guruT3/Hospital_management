@@ -1,0 +1,724 @@
+{% extends 'base.html' %}
+
+{% block title %}Administrator Console — Smart Hospital System{% endblock %}
+
+{% block extra_head %}
+<style>
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .admin-portal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--purple);
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  .admin-id-box {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    color: var(--purple);
+    background: rgba(139, 92, 246, 0.1);
+    padding: 10px 18px;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: var(--radius-sm);
+  }
+
+  .admin-alert {
+    padding: 13px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+
+  .admin-alert.success {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--emerald);
+  }
+
+  .admin-alert.error {
+    background: rgba(244, 63, 94, 0.12);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    color: var(--rose);
+  }
+
+  .admin-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 36px;
+  }
+
+  .admin-stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    transition: all 0.2s ease;
+  }
+
+  .admin-stat-card:hover { border-color: rgba(139,92,246,0.4); transform: translateY(-2px); }
+
+  .admin-stat-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 4px;
+  }
+
+  .admin-stat-lbl { font-size: 0.83rem; color: var(--text-muted); }
+
+  .admin-layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .admin-sidebar { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 94px; }
+
+  /* Sidebar Cards */
+  .side-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--purple);
+    border-radius: var(--radius-lg);
+    padding: 26px;
+  }
+
+  .side-card h3 { font-size: 1.05rem; color: #fff; margin-bottom: 4px; }
+  .side-card .sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 18px; }
+
+  .ad-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+
+  .ad-field label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--purple);
+  }
+
+  .ad-field input {
+    width: 100%;
+    padding: 10px 13px;
+    border-radius: 9px;
+    background: rgba(4, 7, 17, 0.85);
+    border: 1px solid var(--border);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.88rem;
+  }
+
+  .ad-field input:focus {
+    outline: none;
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px var(--purple-glow);
+  }
+
+  .ad-field .hint { font-size: 0.72rem; color: var(--text-subtle); }
+
+  .side-submit {
+    width: 100%;
+    justify-content: center;
+    padding: 11px;
+    font-size: 0.87rem;
+    margin-top: 4px;
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    border-color: var(--purple);
+    box-shadow: 0 4px 18px var(--purple-glow);
+  }
+
+  .side-submit:hover { transform: translateY(-2px); }
+
+  /* Main Panel */
+  .main-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .admin-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .admin-tab-btn {
+    padding: 14px 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .admin-tab-btn:hover { color: #fff; }
+
+  .admin-tab-btn.active {
+    color: var(--purple);
+    border-bottom-color: var(--purple);
+  }
+
+  .admin-panel-body { display: none; }
+  .admin-panel-body.active { display: block; }
+
+  .search-box { padding: 14px 24px; border-bottom: 1px solid var(--border); }
+
+  .search-box input {
+    width: 100%;
+    padding: 9px 14px;
+    border-radius: 8px;
+    background: rgba(4,7,17,0.7);
+    border: 1px solid var(--border);
+    color: #fff;
+    font-size: 0.86rem;
+    font-family: inherit;
+  }
+
+  .search-box input:focus { outline: none; border-color: var(--purple); }
+
+  /* Doctor Row */
+  .doctor-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 130px 80px 120px 90px;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s ease;
+  }
+
+  .doctor-row:last-child { border-bottom: none; }
+  .doctor-row:hover { background: rgba(139,92,246,0.04); }
+
+  .doctor-row.head-row {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+    padding: 12px 24px;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .doctor-avatar, .patient-avatar {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.9rem;
+  }
+
+  .doctor-avatar {
+    background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(139,92,246,0.08));
+    border: 1px solid rgba(139,92,246,0.3);
+    color: var(--purple);
+  }
+
+  .patient-avatar {
+    background: linear-gradient(135deg, rgba(59,130,246,0.25), rgba(59,130,246,0.08));
+    border: 1px solid rgba(59,130,246,0.3);
+    color: var(--primary);
+  }
+
+  .doctor-name-cell .name { color: #fff; font-weight: 600; font-size: 0.92rem; }
+
+  .doctor-uid { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--primary); }
+
+  .visit-count-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--emerald);
+    text-align: center;
+  }
+
+  .pw-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .pw-toggle {
+    cursor: pointer;
+    color: var(--text-subtle);
+    font-size: 0.7rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    padding: 2px 7px;
+    border-radius: 5px;
+    user-select: none;
+  }
+
+  .pw-toggle:hover { color: #fff; }
+
+  .delete-btn, .cancel-btn {
+    background: rgba(244, 63, 94, 0.1);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    color: var(--rose);
+    padding: 7px 12px;
+    border-radius: 7px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .delete-btn:hover, .cancel-btn:hover { background: rgba(244, 63, 94, 0.18); }
+
+  .admin-empty { padding: 50px 24px; text-align: center; color: var(--text-muted); }
+
+  /* Patient Row */
+  .patient-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 140px 120px 1fr 90px;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .patient-row:last-child { border-bottom: none; }
+  .patient-row:hover { background: rgba(59,130,246,0.04); }
+
+  .patient-row.head-row {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+    padding: 12px 24px;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .patient-hid { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--primary); }
+  .allergy-flag { font-size: 0.76rem; color: var(--rose); font-weight: 600; }
+  .no-allergy { font-size: 0.76rem; color: var(--text-subtle); }
+
+  /* Appointment Row */
+  .appt-row {
+    display: grid;
+    grid-template-columns: 60px 130px 1fr 130px 150px 100px;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.85rem;
+  }
+
+  .appt-row:last-child { border-bottom: none; }
+  .appt-row:hover { background: rgba(255,255,255,0.02); }
+
+  .appt-row.head-row {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+    padding: 12px 24px;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .appt-id { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
+  .appt-hid { font-family: 'JetBrains Mono', monospace; color: var(--primary); }
+
+  .badge-mini {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    display: inline-block;
+  }
+
+  .badge-mini.booked { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-mini.confirmed { background: rgba(16,185,129,0.12); color: var(--emerald); border: 1px solid rgba(16,185,129,0.3); }
+  .badge-mini.cancelled { background: rgba(244,63,94,0.12); color: var(--rose); border: 1px solid rgba(244,63,94,0.3); }
+
+  /* Feedback Tab */
+  .feedback-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+    padding: 24px;
+  }
+
+  .feedback-doc-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .feedback-doc-card h4 { color: #fff; font-size: 1rem; margin-bottom: 2px; }
+  .feedback-doc-card .fuid { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: var(--primary); margin-bottom: 14px; }
+
+  .rating-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.8rem; }
+  .rating-bar-label { width: 62px; color: var(--text-muted); flex-shrink: 0; }
+  .rating-bar-track { flex: 1; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden; }
+  .rating-bar-fill { height: 100%; border-radius: 4px; width: 0%; }
+  .rating-bar-fill.good { background: var(--emerald); }
+  .rating-bar-fill.average { background: #f59e0b; }
+  .rating-bar-fill.poor { background: var(--rose); }
+  .rating-bar-count { width: 22px; text-align: right; color: var(--text-subtle); font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
+
+  .feedback-total {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+  }
+
+  @media (max-width: 960px) {
+    .admin-layout { grid-template-columns: 1fr; }
+    .admin-sidebar { position: static; }
+    .admin-stats-row { grid-template-columns: repeat(2, 1fr); }
+    .doctor-row, .doctor-row.head-row,
+    .patient-row, .patient-row.head-row,
+    .appt-row, .appt-row.head-row {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="admin-header">
+    <div>
+      <div class="admin-portal-badge">ADMINISTRATOR CONSOLE</div>
+      <h1 style="font-size:2rem; font-weight:800; color:#fff; margin-top:6px;">
+        Welcome, {{ session.get('username', 'Admin') }}
+      </h1>
+    </div>
+    <div class="admin-id-box">
+      Signed in as: <strong>{{ session.get('username', 'admin') }}</strong>
+    </div>
+  </div>
+
+  {% if admin_msg %}
+  <div class="admin-alert {{ 'success' if admin_msg_type == 'success' else 'error' }}">
+    {{ '✓' if admin_msg_type == 'success' else '⚠️' }} {{ admin_msg }}
+  </div>
+  {% endif %}
+
+  <div class="admin-stats-row">
+    <div class="admin-stat-card">
+      <div class="admin-stat-val" style="color:var(--purple);">{{ doctors|length if doctors else 0 }}</div>
+      <div class="admin-stat-lbl">Registered Doctors</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-val" style="color:var(--primary);">{{ patients|length if patients else 0 }}</div>
+      <div class="admin-stat-lbl">Registered Patients</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-val" style="color:var(--emerald);">{{ appointments|length if appointments else 0 }}</div>
+      <div class="admin-stat-lbl">Total Appointments</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-val" style="color:#f59e0b;">
+        {% set cancelled = namespace(val=0) %}
+        {% if appointments %}
+          {% for a in appointments %}
+            {% if a.status == 'Cancelled' %}{% set cancelled.val = cancelled.val + 1 %}{% endif %}
+          {% endfor %}
+        {% endif %}
+        {{ cancelled.val }}
+      </div>
+      <div class="admin-stat-lbl">Cancelled Bookings</div>
+    </div>
+  </div>
+
+  <div class="admin-layout">
+
+    <div class="admin-sidebar">
+      <!-- Add Doctor -->
+      <div class="side-card">
+        <h3>Add New Doctor</h3>
+        <p class="sub">Creates a new login for the Doctor Terminal.</p>
+
+        <form action="{{ url_for('add_doctor') }}" method="POST" autocomplete="off">
+          <div class="ad-field">
+            <label>Doctor Name</label>
+            <input type="text" name="name" required placeholder="e.g. Dr. Anjali Rao">
+          </div>
+
+          <div class="ad-field">
+            <label>Doctor Unique ID <span style="color:var(--text-subtle); text-transform:none; font-weight:400;">(optional)</span></label>
+            <input type="text" name="unique_id" placeholder="Auto-generated if left blank">
+            <span class="hint">Format: DOC-2026-XXXX</span>
+          </div>
+
+          <div class="ad-field">
+            <label>Password</label>
+            <input type="text" name="password" required placeholder="Set a login password">
+          </div>
+
+          <button type="submit" class="btn btn-primary side-submit">
+            + Create Doctor Account
+          </button>
+        </form>
+      </div>
+
+      <!-- Change Admin Password -->
+      <div class="side-card">
+        <h3>Change Admin Password</h3>
+        <p class="sub">Update your own login password.</p>
+
+        <form action="{{ url_for('change_admin_password') }}" method="POST" autocomplete="off">
+          <div class="ad-field">
+            <label>Current Password</label>
+            <input type="password" name="current_password" required placeholder="••••••••">
+          </div>
+
+          <div class="ad-field">
+            <label>New Password</label>
+            <input type="password" name="new_password" required placeholder="••••••••">
+          </div>
+
+          <div class="ad-field">
+            <label>Confirm New Password</label>
+            <input type="password" name="confirm_password" required placeholder="••••••••">
+          </div>
+
+          <button type="submit" class="btn btn-primary side-submit">
+            Update Password
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tabbed Management Panel -->
+    <div class="main-panel">
+      <div class="admin-tabs">
+        <button class="admin-tab-btn active" onclick="switchTab('doctors', this)">Doctors ({{ doctors|length if doctors else 0 }})</button>
+        <button class="admin-tab-btn" onclick="switchTab('patients', this)">Patients ({{ patients|length if patients else 0 }})</button>
+        <button class="admin-tab-btn" onclick="switchTab('appointments', this)">Appointments ({{ appointments|length if appointments else 0 }})</button>
+        <button class="admin-tab-btn" onclick="switchTab('feedback', this)">Feedback</button>
+      </div>
+
+      <!-- Doctors Tab -->
+      <div id="tab-doctors" class="admin-panel-body active">
+        <div class="search-box">
+          <input type="text" id="doctorSearch" placeholder="Search doctors by name or unique ID..." onkeyup="filterRows('doctorSearch', 'doctorTableBody')">
+        </div>
+
+        {% if doctors and doctors|length > 0 %}
+        <div class="doctor-row head-row">
+          <div></div><div>Doctor</div><div>Unique ID</div><div>Visits</div><div>Password</div><div>Action</div>
+        </div>
+        <div id="doctorTableBody">
+          {% for doc in doctors %}
+          <div class="doctor-row">
+            <div class="doctor-avatar">{{ doc.name[0]|upper if doc.name else 'D' }}</div>
+            <div class="doctor-name-cell"><span class="name">{{ doc.name }}</span></div>
+            <div class="doctor-uid">{{ doc.unique_id }}</div>
+            <div class="visit-count-pill">{{ doc.visit_count }}</div>
+            <div class="pw-cell">
+              <span class="pw-text" data-real="{{ doc.password }}">••••••••</span>
+              <span class="pw-toggle" onclick="togglePw(this)">show</span>
+            </div>
+            <form action="{{ url_for('delete_doctor', doctor_id=doc.id) }}" method="POST" onsubmit="return confirm('Remove {{ doc.name }} from the system?');">
+              <button type="submit" class="delete-btn">Remove</button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="admin-empty"><h3 style="color:#fff; margin-bottom:6px;">No Doctors Registered Yet</h3><p>Use the form on the left to create your first doctor account.</p></div>
+        {% endif %}
+      </div>
+
+      <!-- Patients Tab -->
+      <div id="tab-patients" class="admin-panel-body">
+        <div class="search-box">
+          <input type="text" id="patientSearch" placeholder="Search patients by name, Health ID, or phone..." onkeyup="filterRows('patientSearch', 'patientTableBody')">
+        </div>
+
+        {% if patients and patients|length > 0 %}
+        <div class="patient-row head-row">
+          <div></div><div>Patient</div><div>Health ID</div><div>Phone</div><div>Allergy Alert</div><div>Action</div>
+        </div>
+        <div id="patientTableBody">
+          {% for pat in patients %}
+          <div class="patient-row">
+            <div class="patient-avatar">{{ pat.name[0]|upper if pat.name else 'P' }}</div>
+            <div>
+              <div style="color:#fff; font-weight:600; font-size:0.92rem;">{{ pat.name }}</div>
+              <div style="color:var(--text-subtle); font-size:0.76rem;">{{ pat.username }}</div>
+            </div>
+            <div class="patient-hid">{{ pat.health_id }}</div>
+            <div style="color:var(--text-muted); font-size:0.86rem;">{{ pat.phone }}</div>
+            <div>
+              {% if pat.allergy_alerts %}<span class="allergy-flag">⚠ {{ pat.allergy_alerts }}</span>{% else %}<span class="no-allergy">None recorded</span>{% endif %}
+            </div>
+            <form action="{{ url_for('delete_patient', user_id=pat.user_id) }}" method="POST" onsubmit="return confirm('Remove patient {{ pat.name }} ({{ pat.health_id }})? This also deletes their login.');">
+              <button type="submit" class="delete-btn">Remove</button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="admin-empty"><h3 style="color:#fff; margin-bottom:6px;">No Patients Registered Yet</h3><p>Patients will appear here once they register through the platform.</p></div>
+        {% endif %}
+      </div>
+
+      <!-- Appointments Tab -->
+      <div id="tab-appointments" class="admin-panel-body">
+        <div class="search-box">
+          <input type="text" id="apptSearch" placeholder="Search by Health ID or doctor name..." onkeyup="filterRows('apptSearch', 'apptTableBody')">
+        </div>
+
+        {% if appointments and appointments|length > 0 %}
+        <div class="appt-row head-row">
+          <div>ID</div><div>Health ID</div><div>Doctor</div><div>Status</div><div>Visit Time</div><div>Action</div>
+        </div>
+        <div id="apptTableBody">
+          {% for appt in appointments %}
+          <div class="appt-row">
+            <div class="appt-id">#{{ appt.id }}</div>
+            <div class="appt-hid">{{ appt.health_id }}</div>
+            <div style="color:#fff;">{{ appt.doctor_name or '—' }}</div>
+            <div>
+              {% if appt.status == 'Confirmed' %}<span class="badge-mini confirmed">CONFIRMED</span>
+              {% elif appt.status == 'Cancelled' %}<span class="badge-mini cancelled">CANCELLED</span>
+              {% else %}<span class="badge-mini booked">BOOKED</span>{% endif %}
+            </div>
+            <div style="color:var(--text-muted); font-size:0.8rem;">{{ appt.visit_time or '—' }}</div>
+            <div>
+              {% if appt.status != 'Cancelled' %}
+              <form action="{{ url_for('admin_cancel_appointment', appointment_id=appt.id) }}" method="POST" onsubmit="return confirm('Cancel appointment #{{ appt.id }}?');">
+                <button type="submit" class="cancel-btn">Cancel</button>
+              </form>
+              {% else %}
+              <span style="color:var(--text-subtle); font-size:0.76rem;">—</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="admin-empty"><h3 style="color:#fff; margin-bottom:6px;">No Appointments Found</h3><p>Bookings will appear here once patients start scheduling visits.</p></div>
+        {% endif %}
+      </div>
+
+      <!-- Feedback Tab -->
+      <div id="tab-feedback" class="admin-panel-body">
+        {% if doctors and doctors|length > 0 %}
+        <div class="feedback-grid">
+          {% for doc in doctors %}
+          {% set fb = feedback_map.get(doc.name) %}
+          <div class="feedback-doc-card">
+            <h4>{{ doc.name }}</h4>
+            <div class="fuid">{{ doc.unique_id }}</div>
+
+            {% if fb and fb.total_feedback > 0 %}
+            <div class="rating-bar-row">
+              <span class="rating-bar-label">🙂 Good</span>
+              <div class="rating-bar-track">
+                <div class="rating-bar-fill good" data-pct="{{ (fb.good_count / fb.total_feedback * 100)|round }}"></div>
+              </div>
+              <span class="rating-bar-count">{{ fb.good_count }}</span>
+            </div>
+            <div class="rating-bar-row">
+              <span class="rating-bar-label">😐 Average</span>
+              <div class="rating-bar-track">
+                <div class="rating-bar-fill average" data-pct="{{ (fb.average_count / fb.total_feedback * 100)|round }}"></div>
+              </div>
+              <span class="rating-bar-count">{{ fb.average_count }}</span>
+            </div>
+            <div class="rating-bar-row">
+              <span class="rating-bar-label">🙁 Poor</span>
+              <div class="rating-bar-track">
+                <div class="rating-bar-fill poor" data-pct="{{ (fb.poor_count / fb.total_feedback * 100)|round }}"></div>
+              </div>
+              <span class="rating-bar-count">{{ fb.poor_count }}</span>
+            </div>
+            <div class="feedback-total">{{ fb.total_feedback }} total review{{ 's' if fb.total_feedback != 1 else '' }}</div>
+            {% else %}
+            <div style="color:var(--text-subtle); font-size:0.82rem; padding:10px 0;">No feedback submitted yet.</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="admin-empty"><h3 style="color:#fff; margin-bottom:6px;">No Doctors to Show Feedback For</h3><p>Add doctors first to start collecting patient feedback.</p></div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function togglePw(el) {
+    const cell = el.previousElementSibling;
+    if (cell.textContent === '••••••••') {
+      cell.textContent = cell.getAttribute('data-real');
+      el.textContent = 'hide';
+    } else {
+      cell.textContent = '••••••••';
+      el.textContent = 'show';
+    }
+  }
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.admin-panel-body').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function filterRows(inputId, containerId) {
+    const query = document.getElementById(inputId).value.toLowerCase();
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const rows = container.children;
+    for (let row of rows) {
+      row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+    }
+  }
+
+  function applyFeedbackBarWidths() {
+    document.querySelectorAll('.rating-bar-fill').forEach(function (el) {
+      const pct = el.getAttribute('data-pct') || '0';
+      el.style.width = pct + '%';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', applyFeedbackBarWidths);
+</script>
+{% endblock %}

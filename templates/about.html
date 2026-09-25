@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}About MediQ{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ---------- About page ---------- */
+  .about-hero {
+    position: relative;
+    padding: 76px 24px 56px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .about-hero::before {
+    content: '';
+    position: absolute;
+    top: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 640px;
+    height: 320px;
+    background: radial-gradient(circle, var(--cyan-glow) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .about-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    background: rgba(34, 211, 238, 0.1);
+    border: 1px solid rgba(34, 211, 238, 0.28);
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 22px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .about-eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--emerald);
+    box-shadow: 0 0 8px var(--emerald);
+    animation: dot-pulse 1.8s ease-in-out infinite;
+  }
+
+  .about-hero h1 {
+    position: relative;
+    z-index: 1;
+    font-size: clamp(2.6rem, 6vw, 4.2rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 30%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1.05;
+  }
+
+  .about-hero .tagline {
+    position: relative;
+    z-index: 1;
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    letter-spacing: 0.01em;
+  }
+
+  .about-section {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 52px 24px;
+  }
+
+  .about-section + .about-section {
+    border-top: 1px solid var(--border);
+  }
+
+  .section-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 10px;
+  }
+
+  .about-section h2 {
+    font-size: 1.7rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+
+  .about-summary p {
+    color: var(--text-muted);
+    font-size: 1.02rem;
+    line-height: 1.8;
+    max-width: 760px;
+  }
+
+  /* ---- Feature grid ---- */
+  .feature-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 6px;
+  }
+
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    font-size: 0.92rem;
+    color: var(--text-main);
+    line-height: 1.5;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  }
+
+  .feature-list li:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-hover);
+    background: var(--card-hover);
+  }
+
+  .feature-list li::before {
+    content: '';
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    border-radius: 6px;
+    background: rgba(52, 211, 153, 0.14);
+    border: 1px solid rgba(52, 211, 153, 0.35);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2334d399' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 12px;
+  }
+
+  /* ---- Team ---- */
+  .team-table-wrap {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .team-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+
+  .team-table thead th {
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    background: rgba(34, 211, 238, 0.06);
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .team-table tbody td {
+    padding: 14px 20px;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .team-table tbody tr:last-child td { border-bottom: none; }
+  .team-table tbody tr { transition: background 0.15s ease; }
+  .team-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+  .team-table td:nth-child(1),
+  .team-table td:nth-child(2) {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .supervisor {
+    margin-top: 18px;
+    background: rgba(251, 191, 36, 0.06);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-left: 3px solid var(--amber);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+
+  .supervisor strong { color: var(--text-main); }
+
+  @media (max-width: 640px) {
+    .feature-list { grid-template-columns: 1fr; }
+    .about-hero { padding: 56px 20px 40px; }
+    .team-table thead th, .team-table tbody td { padding: 12px 14px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="about-page">
+
+  <section class="about-hero">
+    <span class="about-eyebrow"><span class="dot"></span>Smart Hospital System</span>
+    <h1>MediQ</h1>
+    <p class="tagline">Built as a Python full-stack hospital management platform</p>
+  </section>
+
+  <div class="trace-line" aria-hidden="true"></div>
+
+  <section class="about-section about-summary">
+    <div class="section-eyebrow">Overview</div>
+    <h2>About the Project</h2>
+    <p>
+      MediQ is a full-stack Hospital Management System built with Flask, HTML, CSS,
+      JavaScript and MySQL. It brings patient registration, doctor management,
+      appointment scheduling, a smart digital queue and prescription handling onto a
+      single, secure web-based platform — reducing hospitals' and clinics' dependency
+      on paper-based processes.
+    </p>
+  </section>
+
+  <section class="about-section about-features">
+    <div class="section-eyebrow">Capabilities</div>
+    <h2>Key Features</h2>
+    <ul class="feature-list">
+      <li>Patient registration with automatic, unique Health ID generation</li>
+      <li>Role-based login and dashboards for Admin, Doctor and Patient</li>
+      <li>Doctor management and availability tracking</li>
+      <li>Appointment booking with automatic conflict detection</li>
+      <li>Emergency priority scheduling for critical cases</li>
+      <li>Smart Digital Queue System to reduce patient waiting time</li>
+      <li>Medicine allergy alerts while creating prescriptions</li>
+      <li>Automatic PDF prescription generation</li>
+      <li>Medical record and diagnostic report upload/download</li>
+      <li>Complete patient visit history tracking</li>
+    </ul>
+  </section>
+
+  <section class="about-section about-team">
+    <div class="section-eyebrow">Credits</div>
+    <h2>Project Team</h2>
+
+    <div class="team-table-wrap">
+      <table class="team-table">
+        <thead>
+          <tr>
+            <th>Roll No</th>
+            <th>Regd No</th>
+            <th>Name</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>24CSE102</td>
+            <td>24UG010168</td>
+            <td>Guru Prasad Palai</td>
+          </tr>
+          <tr>
+            <td>24CSE054</td>
+            <td>24UG010121</td>
+            <td>Dibyajyoti Kamila</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="supervisor">
+      <strong>Supervisor:</strong> Dr. Gitanjali Mishra<br>
+      <strong>Group No:</strong> 4 &nbsp;|&nbsp; <strong>Section:</strong> B<br>
+      <strong>Dept. of CSE, GIET University, Gunupur</strong>
+    </p>
+  </section>
+
+</div>
+{% endblock %}
