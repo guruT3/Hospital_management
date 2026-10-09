@@ -472,13 +472,7 @@
         <p>Separate authenticated portals for Admin, Doctor and Patient, each with credentials scoped to their own role and permissions.</p>
       </div>
 
-      <div class="feature-card" style="--accent-color:var(--purple);">
-        <div class="feature-icon" style="background:rgba(139,92,246,0.1); border-color:rgba(139,92,246,0.25); color:var(--purple);">
-          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /></svg>
-        </div>
-        <h3>Admin Doctor Management</h3>
-        <p>Admins add, view and remove doctor records, assigning a unique Doctor ID (e.g. DOC-2026-1001) to every new account.</p>
-      </div>
+      
 
       <div class="feature-card" style="--accent-color:var(--primary);">
         <div class="feature-icon">
@@ -526,6 +520,22 @@
         </div>
         <h3>Medical Records & Visit History</h3>
         <p>Patients upload and download diagnostic reports and medical records, while the system keeps a complete visit history for every Health ID.</p>
+      </div>
+            <div class="feature-card" style="--accent-color:#22d3ee;">
+        <div class="feature-icon" style="background:rgba(34,211,238,0.1); border-color:rgba(34,211,238,0.25); color:#22d3ee;">
+          <svg viewBox="0 0 24 24"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+        </div>
+        <h3>Nearby Hospital Locator</h3>
+        <p>Detect your current location or search any area, and instantly see nearby hospitals on a live map with distance, contact details and turn-by-turn directions.</p>
+        <a href="{{ url_for('hospital_map') }}" class="feature-tag" style="color:#22d3ee; background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3);">OPEN MAP &rarr;</a>
+      </div>
+
+      <div class="feature-card" style="--accent-color:#f59e0b;">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.25); color:#f59e0b;">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+        </div>
+        <h3>Doctor Feedback & Ratings</h3>
+        <p>After a confirmed visit, patients rate their doctor as Good, Average or Poor, and admins see the feedback summary for every doctor.</p>
       </div>
 
     </div>

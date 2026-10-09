@@ -1,7 +1,7 @@
 import random
 from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
-
+import os
 app = Flask(__name__)
 app.secret_key = 'smart_hospital_secret_key_2026'
 
@@ -784,6 +784,11 @@ def submit_feedback():
 def about():
     return render_template("about.html",titile="About Page")
 
+ 
+
+@app.route("/map")
+def hospital_map():
+    return render_template("map.html")
 
 if __name__ == '__main__':
     app.run(debug=True)

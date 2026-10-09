@@ -548,7 +548,12 @@
           <li><a href="{{ url_for('about') }}" class="btn btn-outline btn-nav-amber">About Us</a></li>
           <li class="nav-divider"></li>
           <li><a href="{{ url_for('register') }}" class="btn btn-primary">Register Patient</a></li>
-
+          <li>
+  <a href="{{ url_for('hospital_map') }}" class="btn btn-outline btn-nav-primary">
+    <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+    Find Hospitals
+  </a>
+</li>
         {% endif %}
       </ul>
     </div>
@@ -563,7 +568,7 @@
     <div class="trace-line trace-line--footer" aria-hidden="true"></div>
 
     <div class="footer-grid">
-      <div>
+      
         <div class="footer-brand-row">
           <div class="brand-icon" style="width:32px; height:32px;">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -572,9 +577,8 @@
           </div>
           <div class="footer-brand-title">MediQ Smart Hospital System</div>
         </div>
-        <p class="footer-desc">Smart digital healthcare platform for patient registration, unique Health ID generation
-          (MD-2026-XXXX), allergy alert tracking, and multi-role hospital management.</p>
-      </div>
+        
+      
 
       <div>
         <div class="footer-heading">Navigate</div>

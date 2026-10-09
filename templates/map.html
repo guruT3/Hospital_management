@@ -1,0 +1,886 @@
+{% extends "base.html" %}
+
+{% block title %}Find Nearby Hospitals — MediQ{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  /* ---------- Map page ---------- */
+  .mp-wrap { max-width: 1240px; margin: 0 auto; padding: 36px 24px 0; }
+
+  .mp-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+
+  .mp-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    background: rgba(34, 211, 238, 0.1);
+    border: 1px solid rgba(34, 211, 238, 0.28);
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+  }
+
+  .mp-eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--emerald);
+    box-shadow: 0 0 8px var(--emerald);
+    animation: dot-pulse 1.8s ease-in-out infinite;
+  }
+
+  .mp-head h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); font-weight: 800; line-height: 1.1; }
+  .mp-head p { color: var(--text-muted); max-width: 560px; margin-top: 8px; font-size: 0.97rem; }
+
+  .mp-emergency {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(251, 113, 133, 0.08);
+    border: 1px solid rgba(251, 113, 133, 0.3);
+    color: #fecdd3;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 0.84rem;
+    max-width: 340px;
+    line-height: 1.4;
+  }
+  .mp-emergency svg { width: 18px; height: 18px; flex-shrink: 0; stroke: var(--rose); fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---- Layout ---- */
+  .mp-shell {
+    display: grid;
+    grid-template-columns: 410px 1fr;
+    gap: 20px;
+    height: clamp(580px, calc(100vh - 250px), 820px);
+  }
+
+  .mp-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+
+  .mp-controls {
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mp-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+  }
+
+  .mp-locate { width: 100%; justify-content: center; padding: 11px 18px; font-size: 0.9rem; }
+  .mp-locate svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+  .mp-locate.busy { opacity: 0.7; pointer-events: none; }
+  .mp-locate.busy svg { animation: mp-spin 1s linear infinite; }
+
+  @keyframes mp-spin { to { transform: rotate(360deg); } }
+
+  .mp-or {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-subtle);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .mp-or::before, .mp-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* place search (Nominatim) */
+  .mp-search { display: flex; gap: 8px; }
+  .mp-search input {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    outline: none;
+  }
+  .mp-search input:focus { border-color: var(--cyan); }
+  .mp-search input::placeholder { color: var(--text-subtle); }
+  .mp-search button {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #04141a;
+    background: var(--cyan);
+    border: 1px solid var(--cyan);
+    border-radius: var(--radius-sm);
+    padding: 0 16px;
+    cursor: pointer;
+  }
+  .mp-search button:disabled { opacity: 0.6; cursor: wait; }
+
+  .mp-hint { font-size: 0.78rem; color: var(--text-subtle); line-height: 1.5; }
+
+  .mp-where {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    background: rgba(34, 211, 238, 0.06);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+  }
+  .mp-where.show { display: flex; }
+  .mp-where strong { color: var(--cyan); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .mp-radius { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .mp-chipbtn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.16s ease;
+  }
+  .mp-chipbtn:hover { color: #fff; border-color: var(--border-hover); }
+  .mp-chipbtn.active { color: #04141a; background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 14px var(--cyan-glow); }
+
+  .mp-note {
+    display: none;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .mp-note.show { display: block; }
+  .mp-note.error { color: #fecdd3; background: rgba(251, 113, 133, 0.08); border: 1px solid rgba(251, 113, 133, 0.3); }
+  .mp-note.info { color: #cffafe; background: rgba(34, 211, 238, 0.07); border: 1px solid rgba(34, 211, 238, 0.25); }
+
+  /* ---- Results ---- */
+  .mp-resulthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .mp-count { font-size: 0.86rem; font-weight: 600; color: var(--text-main); }
+  .mp-sort { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--text-subtle); letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .mp-results {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  }
+
+  .mp-empty {
+    margin: auto;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    max-width: 260px;
+    line-height: 1.6;
+    padding: 20px 0;
+  }
+  .mp-empty svg { width: 38px; height: 38px; stroke: var(--text-subtle); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 10px; }
+
+  .mp-skel {
+    height: 112px;
+    flex-shrink: 0;
+    border-radius: var(--radius);
+    background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    background-size: 200% 100%;
+    animation: mp-shimmer 1.4s linear infinite;
+  }
+  @keyframes mp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .mp-card {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 12px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    animation: mp-in 0.35s ease both;
+  }
+  @keyframes mp-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .mp-card:hover { border-color: var(--border-hover); background: var(--card-hover); transform: translateY(-2px); }
+  .mp-card.active { border-color: var(--amber); background: rgba(251, 191, 36, 0.06); box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25), 0 8px 24px -10px var(--amber-glow); }
+
+  .mp-badge {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #04141a;
+    background: var(--emerald);
+  }
+  .mp-card.active .mp-badge { background: var(--amber); }
+
+  .mp-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .mp-name { font-size: 0.97rem; font-weight: 700; line-height: 1.3; }
+  .mp-dist {
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--cyan);
+    background: rgba(34, 211, 238, 0.1);
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .mp-addr { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; line-height: 1.45; }
+  .mp-phone { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+
+  .mp-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+  .mp-chip { font-size: 0.7rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid transparent; }
+  .mp-chip--open { color: var(--emerald); background: rgba(52, 211, 153, 0.1); border-color: rgba(52, 211, 153, 0.3); }
+  .mp-chip--closed { color: var(--rose); background: rgba(251, 113, 133, 0.1); border-color: rgba(251, 113, 133, 0.3); }
+  .mp-chip--muted { color: var(--text-subtle); background: rgba(255, 255, 255, 0.04); border-color: var(--border); }
+
+  .mp-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  .mp-act {
+    font-size: 0.76rem;
+    font-weight: 700;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 11px;
+    transition: all 0.15s ease;
+  }
+  .mp-act:hover { border-color: var(--cyan); color: var(--cyan); }
+  .mp-act--primary { color: #04141a; background: var(--cyan); border-color: var(--cyan); }
+  .mp-act--primary:hover { color: #04141a; box-shadow: 0 4px 14px var(--cyan-glow); transform: translateY(-1px); }
+
+  .mp-hours { margin-top: 10px; font-size: 0.78rem; color: var(--text-muted); }
+  .mp-hours summary { cursor: pointer; color: var(--text-subtle); font-weight: 600; list-style: none; }
+  .mp-hours summary::-webkit-details-marker { display: none; }
+  .mp-hours summary::before { content: '+ '; color: var(--cyan); font-family: 'JetBrains Mono', monospace; }
+  .mp-hours[open] summary::before { content: '– '; }
+  .mp-hours p { margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; line-height: 1.5; word-break: break-word; }
+
+  /* ---- Map ---- */
+  .mp-mapwrap {
+    position: relative;
+    min-height: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
+    background: var(--bg-alt);
+  }
+  #map { position: absolute; inset: 0; background: #0b1220; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+  /* Darken the standard OSM tiles to match the dark theme */
+  .mp-tiles { filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.7); }
+
+  /* Leaflet custom pins */
+  .mp-pin {
+    width: 30px; height: 30px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    background: #34d399;
+    border: 2px solid #047857;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mp-pin span {
+    transform: rotate(45deg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #04141a;
+  }
+  .mp-pin.active { background: #fbbf24; border-color: #b45309; }
+  .mp-pin--origin { background: #22d3ee; border-color: #0e7490; }
+  .mp-pin--origin span { width: 8px; height: 8px; border-radius: 50%; background: #04141a; }
+  .leaflet-marker-icon.mp-icon { background: none; border: none; }
+  .leaflet-control-attribution { background: rgba(10, 18, 32, 0.8) !important; color: #94a3b8 !important; }
+  .leaflet-control-attribution a { color: #22d3ee !important; }
+
+  .mp-peek {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    right: 16px;
+    max-width: 380px;
+    background: rgba(10, 18, 32, 0.94);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    animation: mp-in 0.25s ease both;
+  }
+  .mp-peek[hidden] { display: none; }
+  .mp-peek h3 { font-size: 0.97rem; font-weight: 700; padding-right: 26px; }
+  .mp-peek .mp-addr { margin-top: 3px; }
+  .mp-peek .mp-actions { margin-top: 10px; }
+  .mp-peek-close {
+    position: absolute; top: 8px; right: 8px;
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+  .mp-peek-close:hover { color: #fff; border-color: var(--border-hover); }
+
+  @media (max-width: 960px) {
+    .mp-shell { grid-template-columns: 1fr; height: auto; }
+    .mp-mapwrap { order: -1; height: 380px; }
+    .mp-panel { max-height: none; }
+    .mp-results { overflow: visible; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mp-wrap">
+
+  <div class="mp-head">
+    <div>
+      <span class="mp-eyebrow"><span class="dot"></span>Hospital Locator</span>
+      <h1>Find nearby hospitals</h1>
+      <p>Detect your location or pick one on the map, then see hospitals around you by distance, with contact details and directions. 100% free, powered by OpenStreetMap.</p>
+    </div>
+    <div class="mp-emergency">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <span>In a medical emergency, call your local emergency number first (India: 112 / 108).</span>
+    </div>
+  </div>
+
+  <div class="mp-shell">
+
+    <aside class="mp-panel">
+      <div class="mp-controls">
+        <div class="mp-label">Your location</div>
+
+        <button type="button" id="mpLocate" class="btn btn-primary mp-locate">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg>
+          <span id="mpLocateText">Use my current location</span>
+        </button>
+
+        <div class="mp-or">or</div>
+
+        <form class="mp-search" id="mpSearchForm" autocomplete="off">
+          <input type="text" id="mpSearchInput" placeholder="Search a city, area or address" aria-label="Search a place">
+          <button type="submit" id="mpSearchBtn">Search</button>
+        </form>
+        <div class="mp-hint">Tip: click anywhere on the map, or drag the cyan pin, to set your location.</div>
+
+        <div class="mp-where" id="mpWhere"><span>📍</span><strong id="mpWhereText"></strong></div>
+
+        <div class="mp-label" style="margin-top:2px;">Search radius</div>
+        <div class="mp-radius" id="mpRadius">
+          <button type="button" class="mp-chipbtn" data-km="2">2 km</button>
+          <button type="button" class="mp-chipbtn active" data-km="5">5 km</button>
+          <button type="button" class="mp-chipbtn" data-km="10">10 km</button>
+          <button type="button" class="mp-chipbtn" data-km="25">25 km</button>
+        </div>
+
+        <div class="mp-note" id="mpNote" role="status"></div>
+      </div>
+
+      <div class="mp-resulthead">
+        <div class="mp-count" id="mpCount">No search yet</div>
+        <div class="mp-sort">Nearest first</div>
+      </div>
+
+      <div class="mp-results" id="mpResults">
+        <div class="mp-empty">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          <div>Choose a location to see hospitals around it.</div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="mp-mapwrap">
+      <div id="map" aria-label="Map of nearby hospitals"></div>
+      <div class="mp-peek" id="mpPeek" hidden></div>
+    </section>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  const DEFAULT_CENTER = [20.5937, 78.9629]; // India
+  const OVERPASS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter'
+  ];
+
+  let origin = null, originMarker = null, circle = null;
+  let radiusKm = 5, activeId = null, searchToken = 0;
+  let items = [];
+  const hospitalMarkers = new Map();
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    locate: $('mpLocate'), locateText: $('mpLocateText'), where: $('mpWhere'), whereText: $('mpWhereText'),
+    radius: $('mpRadius'), note: $('mpNote'), count: $('mpCount'), results: $('mpResults'), peek: $('mpPeek'),
+    form: $('mpSearchForm'), input: $('mpSearchInput'), searchBtn: $('mpSearchBtn')
+  };
+
+  /* ---------- map ---------- */
+  const map = L.map('map', { zoomControl: true }).setView(DEFAULT_CENTER, 5);
+
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+    className: 'mp-tiles'
+  }).addTo(map);
+
+  /* ---------- helpers ---------- */
+  function h(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function haversineKm(a, b) {
+    const R = 6371, rad = (d) => d * Math.PI / 180;
+    const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+    const x = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(x));
+  }
+
+  const fmtDist = (km) => km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km';
+
+  const dirUrl = (it) =>
+    'https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=' +
+    origin.lat + '%2C' + origin.lng + '%3B' + it.lat + '%2C' + it.lng;
+
+  function linkEl(label, url, primary, external) {
+    const a = h('a', 'mp-act' + (primary ? ' mp-act--primary' : ''), label);
+    a.href = url;
+    if (external) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    return a;
+  }
+
+  function safeUrl(u) {
+    if (!u) return null;
+    if (!/^https?:\/\//i.test(u)) u = 'http://' + u;
+    return /^https?:\/\//i.test(u) ? u : null;
+  }
+
+  function showNote(type, msg) {
+    els.note.className = 'mp-note show ' + type;
+    els.note.textContent = msg;
+  }
+  function clearNote() { els.note.className = 'mp-note'; els.note.textContent = ''; }
+
+  function emptyState(msg) {
+    els.results.replaceChildren();
+    const box = h('div', 'mp-empty');
+    box.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+    box.append(h('div', null, msg));
+    els.results.append(box);
+  }
+
+  function showSkeleton() {
+    els.results.replaceChildren();
+    for (let i = 0; i < 4; i++) els.results.append(h('div', 'mp-skel'));
+  }
+
+  function pinIcon(inner, extraCls) {
+    return L.divIcon({
+      className: 'mp-icon',
+      html: '<div class="mp-pin ' + (extraCls || '') + '"><span>' + (inner || '') + '</span></div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 30]
+    });
+  }
+
+  function chipFor(it) {
+    if (it.emergency === true) return h('span', 'mp-chip mp-chip--open', 'Emergency services');
+    if (it.emergency === false) return h('span', 'mp-chip mp-chip--muted', 'No emergency dept.');
+    return h('span', 'mp-chip mp-chip--muted', 'Emergency info n/a');
+  }
+
+  function buildAddress(t) {
+    if (t['addr:full']) return t['addr:full'];
+    const parts = [
+      [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' '),
+      t['addr:suburb'] || t['addr:neighbourhood'],
+      t['addr:city'] || t['addr:town'] || t['addr:village'] || t['addr:district'],
+      t['addr:state'],
+      t['addr:postcode']
+    ].filter(Boolean);
+    return parts.join(', ');
+  }
+
+  /* ---------- origin (user location) ---------- */
+  function ensureOriginMarker(p) {
+    if (!originMarker) {
+      originMarker = L.marker([p.lat, p.lng], {
+        icon: pinIcon('', 'mp-pin--origin'),
+        draggable: true,
+        zIndexOffset: 1000,
+        title: 'Your location (drag to move)'
+      }).addTo(map);
+      originMarker.on('dragend', () => {
+        const ll = originMarker.getLatLng();
+        setOrigin({ lat: ll.lat, lng: ll.lng }, 'Pinned location');
+      });
+    } else {
+      originMarker.setLatLng([p.lat, p.lng]);
+    }
+  }
+
+  function drawCircle() {
+    if (!circle) {
+      circle = L.circle([origin.lat, origin.lng], {
+        radius: radiusKm * 1000,
+        color: '#22d3ee', opacity: 0.7, weight: 1.5,
+        fillColor: '#22d3ee', fillOpacity: 0.06, interactive: false
+      }).addTo(map);
+    } else {
+      circle.setLatLng([origin.lat, origin.lng]);
+      circle.setRadius(radiusKm * 1000);
+    }
+  }
+
+  async function setOrigin(p, label) {
+    origin = p;
+    ensureOriginMarker(p);
+    drawCircle();
+    els.where.classList.add('show');
+    els.whereText.textContent = label || (p.lat.toFixed(4) + ', ' + p.lng.toFixed(4));
+    map.fitBounds(circle.getBounds(), { padding: [24, 24] });
+    await searchHospitals();
+  }
+
+  /* ---------- search (Overpass / OpenStreetMap) ---------- */
+  function clearMarkers() {
+    hospitalMarkers.forEach((m) => map.removeLayer(m));
+    hospitalMarkers.clear();
+    activeId = null;
+    els.peek.hidden = true;
+  }
+
+  async function queryOverpass(query) {
+    let lastErr;
+    for (const url of OVERPASS) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 25000);
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'data=' + encodeURIComponent(query),
+          signal: ctrl.signal
+        });
+        clearTimeout(timer);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr;
+  }
+
+  async function searchHospitals() {
+    const token = ++searchToken;
+    clearNote();
+    clearMarkers();
+    showSkeleton();
+    els.count.textContent = 'Searching…';
+
+    const r = radiusKm * 1000;
+    const query =
+      '[out:json][timeout:25];(' +
+      'nwr["amenity"="hospital"](around:' + r + ',' + origin.lat + ',' + origin.lng + ');' +
+      'nwr["healthcare"="hospital"](around:' + r + ',' + origin.lat + ',' + origin.lng + ');' +
+      ');out center tags;';
+
+    try {
+      const data = await queryOverpass(query);
+      if (token !== searchToken) return;
+
+      const seen = new Set();
+      const list = [];
+      (data.elements || []).forEach((el) => {
+        const lat = el.lat != null ? el.lat : (el.center && el.center.lat);
+        const lng = el.lon != null ? el.lon : (el.center && el.center.lon);
+        if (lat == null || lng == null) return;
+        const t = el.tags || {};
+        const id = el.type + '/' + el.id;
+        if (seen.has(id)) return;
+        seen.add(id);
+
+        const phone = t.phone || t['contact:phone'] || '';
+        list.push({
+          id: id,
+          name: t.name || t['name:en'] || 'Hospital (unnamed)',
+          address: buildAddress(t),
+          lat: lat, lng: lng,
+          distance: haversineKm(origin, { lat: lat, lng: lng }),
+          phone: phone.split(';')[0].trim(),
+          website: safeUrl(t.website || t['contact:website']),
+          hours: t.opening_hours || '',
+          emergency: t.emergency === 'yes' ? true : (t.emergency === 'no' ? false : undefined)
+        });
+      });
+
+      list.sort((a, b) => a.distance - b.distance);
+      items = list.slice(0, 30);
+      renderResults();
+    } catch (err) {
+      if (token !== searchToken) return;
+      console.error(err);
+      els.count.textContent = 'Search failed';
+      emptyState('We couldn\u2019t load hospitals right now.');
+      showNote('error', 'Could not reach the free OpenStreetMap server. Check your internet connection and try again in a moment.');
+    }
+  }
+
+  /* ---------- render ---------- */
+  function renderResults() {
+    els.results.replaceChildren();
+    const n = items.length;
+
+    if (!n) {
+      els.count.textContent = 'No hospitals found';
+      emptyState('No hospitals within ' + radiusKm + ' km. Try a larger radius or a different spot.');
+      return;
+    }
+
+    els.count.textContent = n + ' hospital' + (n === 1 ? '' : 's') + ' within ' + radiusKm + ' km';
+
+    items.forEach((it, i) => {
+      els.results.append(buildCard(it, i));
+
+      const marker = L.marker([it.lat, it.lng], { icon: pinIcon(String(i + 1)), title: it.name }).addTo(map);
+      marker.on('click', () => selectHospital(it.id, { scroll: true }));
+      hospitalMarkers.set(it.id, marker);
+    });
+  }
+
+  function buildCard(it, i) {
+    const card = h('article', 'mp-card');
+    card.dataset.id = it.id;
+    card.tabIndex = 0;
+    card.style.animationDelay = Math.min(i * 40, 400) + 'ms';
+
+    const body = h('div');
+    const top = h('div', 'mp-card-top');
+    top.append(h('h3', 'mp-name', it.name), h('span', 'mp-dist', fmtDist(it.distance)));
+    body.append(top);
+
+    if (it.address) body.append(h('p', 'mp-addr', it.address));
+    if (it.phone) body.append(h('p', 'mp-phone', it.phone));
+
+    const meta = h('div', 'mp-meta');
+    meta.append(chipFor(it));
+    body.append(meta);
+
+    const acts = h('div', 'mp-actions');
+    acts.append(linkEl('Directions', dirUrl(it), true, true));
+    if (it.phone) acts.append(linkEl('Call', 'tel:' + it.phone.replace(/[^\d+]/g, ''), false, false));
+    if (it.website) acts.append(linkEl('Website', it.website, false, true));
+    acts.append(linkEl('OSM page', 'https://www.openstreetmap.org/' + it.id, false, true));
+    body.append(acts);
+
+    if (it.hours) {
+      const d = h('details', 'mp-hours');
+      d.append(h('summary', null, 'Opening hours'));
+      d.append(h('p', null, it.hours));
+      body.append(d);
+    }
+
+    card.append(h('div', 'mp-badge', String(i + 1)), body);
+
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('a, summary')) return;
+      selectHospital(it.id, { scroll: false });
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target === card) selectHospital(it.id, { scroll: false });
+    });
+    return card;
+  }
+
+  function selectHospital(id, opts) {
+    const o = opts || {};
+    activeId = id;
+
+    hospitalMarkers.forEach((m, k) => {
+      const on = k === id;
+      const el = m.getElement();
+      if (el) {
+        const pin = el.querySelector('.mp-pin');
+        if (pin) pin.classList.toggle('active', on);
+      }
+      m.setZIndexOffset(on ? 500 : 0);
+    });
+
+    els.results.querySelectorAll('.mp-card').forEach((c) => {
+      const on = c.dataset.id === id;
+      c.classList.toggle('active', on);
+      if (on && o.scroll) c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+
+    const it = items.find((x) => x.id === id);
+    if (!it) return;
+    map.panTo([it.lat, it.lng]);
+    showPeek(it);
+  }
+
+  function showPeek(it) {
+    els.peek.replaceChildren();
+    const close = h('button', 'mp-peek-close', '\u00d7');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close details');
+    close.addEventListener('click', () => { els.peek.hidden = true; });
+
+    els.peek.append(close, h('h3', null, it.name));
+    if (it.address) els.peek.append(h('p', 'mp-addr', it.address));
+
+    const meta = h('div', 'mp-meta');
+    meta.append(h('span', 'mp-dist', fmtDist(it.distance)));
+    meta.append(chipFor(it));
+    els.peek.append(meta);
+
+    const acts = h('div', 'mp-actions');
+    acts.append(linkEl('Directions', dirUrl(it), true, true));
+    if (it.phone) acts.append(linkEl('Call', 'tel:' + it.phone.replace(/[^\d+]/g, ''), false, false));
+    els.peek.append(acts);
+    els.peek.hidden = false;
+  }
+
+  /* ---------- geolocation ---------- */
+  function locateMe(silent) {
+    if (!navigator.geolocation) {
+      showNote('error', 'Your browser doesn\u2019t support location detection. Search for a place or tap the map instead.');
+      return;
+    }
+    els.locate.classList.add('busy');
+    els.locateText.textContent = 'Detecting location…';
+
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        els.locate.classList.remove('busy');
+        els.locateText.textContent = 'Use my current location';
+        setOrigin({ lat: p.coords.latitude, lng: p.coords.longitude }, 'Your current location');
+      },
+      (err) => {
+        els.locate.classList.remove('busy');
+        els.locateText.textContent = 'Use my current location';
+        if (silent) return;
+        const msgs = {
+          1: 'Location access is blocked. Allow it in your browser\u2019s site settings, or search for a place / tap the map instead.',
+          2: 'We couldn\u2019t work out your position. Search for a place or tap the map instead.',
+          3: 'Detecting your location took too long. Try again, or search for a place instead.'
+        };
+        showNote('error', msgs[err.code] || msgs[2]);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+    );
+  }
+
+  /* ---------- place search (Nominatim, free) ---------- */
+  els.form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const q = els.input.value.trim();
+    if (!q) return;
+    els.searchBtn.disabled = true;
+    clearNote();
+    try {
+      const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q), {
+        headers: { 'Accept': 'application/json' }
+      });
+      const data = await res.json();
+      if (!data.length) {
+        showNote('error', 'No place found for \u201c' + q + '\u201d. Try a different name.');
+      } else {
+        const r = data[0];
+        const label = (r.display_name || q).split(',').slice(0, 2).join(',').trim();
+        await setOrigin({ lat: parseFloat(r.lat), lng: parseFloat(r.lon) }, label);
+      }
+    } catch (err) {
+      showNote('error', 'Place search failed. Check your internet connection or tap the map instead.');
+    } finally {
+      els.searchBtn.disabled = false;
+    }
+  });
+
+  /* ---------- events ---------- */
+  map.on('click', (e) => setOrigin({ lat: e.latlng.lat, lng: e.latlng.lng }, 'Pinned location'));
+  els.locate.addEventListener('click', () => locateMe(false));
+
+  els.radius.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mp-chipbtn');
+    if (!btn) return;
+    radiusKm = Number(btn.dataset.km);
+    els.radius.querySelectorAll('.mp-chipbtn').forEach((b) => b.classList.toggle('active', b === btn));
+    if (origin) setOrigin(origin, els.whereText.textContent);
+  });
+
+  // Auto-detect on load only if the user has already granted permission
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'geolocation' })
+      .then((st) => { if (st.state === 'granted') locateMe(true); })
+      .catch(() => {});
+  }
+})();
+</script>
+{% endblock %}
