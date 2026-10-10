@@ -1,0 +1,99 @@
+{% set is_future = qdate > today %}
+
+<div class="q-summary">
+  <div class="q-stat q-stat--now">
+    <div class="q-stat-val">{% if q.now_serving %}#{{ q.now_serving }}{% else %}—{% endif %}</div>
+    <div class="q-stat-lbl">Now serving</div>
+  </div>
+  <div class="q-stat">
+    <div class="q-stat-val" style="color:#f59e0b;">{{ q.waiting_count }}</div>
+    <div class="q-stat-lbl">Waiting</div>
+  </div>
+  <div class="q-stat">
+    <div class="q-stat-val" style="color:var(--emerald);">{{ q.done_count }}</div>
+    <div class="q-stat-lbl">Done</div>
+  </div>
+  <div class="q-stat">
+    <div class="q-stat-val" style="color:var(--primary);">{{ q.avg_min }}<small> min</small></div>
+    <div class="q-stat-lbl">Avg. per patient</div>
+  </div>
+</div>
+
+<div class="q-bar">
+  <div class="q-bar-note">
+    {% if is_today %}
+      <span class="q-live-dot"></span> Live queue for today · updates every 10 seconds
+    {% elif is_future %}
+      Upcoming day · the queue goes live on {{ qdate.strftime('%d %b %Y') }}. You can still flag emergencies.
+    {% else %}
+      Past day · read only
+    {% endif %}
+  </div>
+  {% if is_today %}
+  <form action="{{ url_for('queue_call_next') }}" method="POST">
+    <button type="submit" class="btn btn-primary" style="padding:9px 18px; font-size:0.86rem;" {% if q.waiting_count == 0 %}disabled{% endif %}>
+      {% if q.now_serving %}Finish &amp; call next{% else %}Call next patient{% endif %} &rarr;
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+{% if q.rows %}
+<div class="q-list">
+  {% for r in q.rows %}
+  <div class="q-row q-row--{{ r.queue_status|lower|replace(' ', '-') }}">
+    <div class="q-token">{{ r.token_no }}</div>
+
+    <div class="q-info">
+      <div class="q-info-top">
+        <span class="q-hid">{{ r.health_id }}</span>
+        <span>{{ r.age }} yrs · {{ r.gender }}</span>
+        {% if r.is_emergency %}<span class="q-chip q-chip--emg">EMERGENCY</span>{% endif %}
+        {% if r.status == 'Confirmed' %}<span class="q-chip q-chip--ok">PRESCRIBED</span>{% endif %}
+      </div>
+      <div class="q-sym">{{ r.disease|truncate(80) }}</div>
+      {% if is_today and r.queue_status in ('Waiting', 'Skipped') %}
+      <div class="q-eta">{{ r.ahead }} ahead · about {{ r.wait_min }} min</div>
+      {% endif %}
+    </div>
+
+    <div class="q-side">
+      {% if r.queue_status == 'In Consultation' %}
+        <span class="q-chip q-chip--now">IN CONSULTATION</span>
+      {% elif r.queue_status == 'Waiting' %}
+        <span class="q-chip q-chip--wait">WAITING</span>
+      {% elif r.queue_status == 'Skipped' %}
+        <span class="q-chip q-chip--skip">SKIPPED</span>
+      {% else %}
+        <span class="q-chip q-chip--done">DONE</span>
+      {% endif %}
+
+      <div class="q-actions">
+        {% if is_today and r.queue_status == 'In Consultation' %}
+        <form action="{{ url_for('queue_done', appointment_id=r.id) }}" method="POST" class="q-inline">
+          <input type="hidden" name="date" value="{{ qdate.isoformat() }}">
+          <button type="submit" class="q-btn q-btn--ok">Mark done</button>
+        </form>
+        {% endif %}
+        {% if is_today and r.queue_status in ('Waiting', 'In Consultation') %}
+        <form action="{{ url_for('queue_skip', appointment_id=r.id) }}" method="POST" class="q-inline">
+          <input type="hidden" name="date" value="{{ qdate.isoformat() }}">
+          <button type="submit" class="q-btn">Skip</button>
+        </form>
+        {% endif %}
+        {% if not (qdate < today) and r.queue_status in ('Waiting', 'Skipped') %}
+        <form action="{{ url_for('queue_emergency', appointment_id=r.id) }}" method="POST" class="q-inline">
+          <input type="hidden" name="date" value="{{ qdate.isoformat() }}">
+          <button type="submit" class="q-btn q-btn--emg">{% if r.is_emergency %}Remove emergency{% else %}Mark emergency{% endif %}</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="q-empty">
+  No patients booked with you for {{ qdate.strftime('%d %b %Y') }}.
+</div>
+{% endif %}

@@ -1,7 +1,7 @@
 import random
 from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
-
+import os
 app = Flask(__name__)
 app.secret_key = 'smart_hospital_secret_key_2026'
 
@@ -54,11 +54,35 @@ def get_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
-    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS feedback (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        appointment_id INT NOT NULL,
+        health_id VARCHAR(50) NOT NULL,
+        doctor_name VARCHAR(100) NOT NULL,
+        rating VARCHAR(20) NOT NULL,
+        feedback_text TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
+    );
+    """)
+    cursor.execute("""
+CREATE TABLE IF NOT EXISTS medicines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    appointment_id INT NOT NULL,
+    medicine_name VARCHAR(150) NOT NULL,
+    dosage VARCHAR(100) DEFAULT NULL,
+    duration VARCHAR(100) DEFAULT NULL,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
+);
+""")
+
     try:
-        cursor.execute("ALTER TABLE doctors ADD COLUMN unique_id VARCHAR(50) DEFAULT NULL;")
+        cursor.execute("ALTER TABLE appointments ADD COLUMN visit_done TINYINT(1) NOT NULL DEFAULT 0;")
     except Exception:
         pass
+    
+    
 
     try:
         cursor.execute("ALTER TABLE appointments ADD COLUMN doctor_name VARCHAR(100) DEFAULT NULL;")
@@ -71,12 +95,19 @@ def get_db():
         pass
 
     try:
+        cursor.execute("ALTER TABLE patients ADD COLUMN allergy_alerts TEXT;")
+    except Exception:
+        pass
+
+    try:
         cursor.execute("""
         INSERT IGNORE INTO doctors (unique_id, name, password) 
         VALUES ('DOC-2026-1001', 'usr123', 'master'), ('DOC-2026-1002', 'demo doctor', 'master');
         """)
     except Exception:
         pass
+
+   
 
     cursor.close()
     server_conn.close()
@@ -194,11 +225,11 @@ def doctor_login():
                 session['role'] = "doctor"
                 return redirect(url_for('doctor_dashboard'))
             else:
-                return render_template("login.html", error="Invalid Doctor Name/ID or Password.", default_role="doctor")
+                return render_template("doctor_login.html", error="Invalid Doctor Name/ID or Password.", default_role="doctor")
         except Exception as e:
             return render_template("login.html", error=f"Database Error: {e}", default_role="doctor")
 
-    return render_template("login.html", default_role="doctor")
+    return render_template("doctor_login.html", default_role="doctor")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -299,6 +330,10 @@ def confirm_appointment():
     doctor_name = (request.form.get("doctor_name") or "").strip()
     visit_time = (request.form.get("visit_time") or "").strip()
 
+    medicine_names = request.form.getlist("medicine_name")
+    dosages = request.form.getlist("dosage")
+    durations = request.form.getlist("duration")
+
     if appointment_id and doctor_name and visit_time:
         try:
             db = get_db()
@@ -307,6 +342,20 @@ def confirm_appointment():
                 "UPDATE appointments SET doctor_name = %s, visit_time = %s, status = 'Confirmed' WHERE id = %s",
                 (doctor_name, visit_time, appointment_id)
             )
+
+            cursor.execute("DELETE FROM medicines WHERE appointment_id = %s", (appointment_id,))
+
+            for i in range(len(medicine_names)):
+                name = (medicine_names[i] or "").strip()
+                if not name:
+                    continue
+                dosage = (dosages[i] if i < len(dosages) else "").strip()
+                duration = (durations[i] if i < len(durations) else "").strip()
+                cursor.execute(
+                    "INSERT INTO medicines (appointment_id, medicine_name, dosage, duration) VALUES (%s, %s, %s, %s)",
+                    (appointment_id, name, dosage, duration)
+                )
+
             db.commit()
             cursor.close()
             db.close()
@@ -322,11 +371,15 @@ def download_prescription(appointment_id):
         cursor = db.cursor(dictionary=True)
         cursor.execute("SELECT * FROM appointments WHERE id = %s", (appointment_id,))
         appointment = cursor.fetchone()
-        
+
         patient_info = None
+        medicines_list = []
         if appointment:
             cursor.execute("SELECT * FROM patients WHERE health_id = %s", (appointment['health_id'],))
             patient_info = cursor.fetchone()
+
+            cursor.execute("SELECT * FROM medicines WHERE appointment_id = %s ORDER BY id ASC", (appointment_id,))
+            medicines_list = cursor.fetchall()
 
         cursor.close()
         db.close()
@@ -334,7 +387,7 @@ def download_prescription(appointment_id):
         if not appointment:
             return redirect(url_for('patient_dashboard'))
 
-        return render_template("prescription_pdf.html", appt=appointment, patient=patient_info)
+        return render_template("prescription_pdf.html", appt=appointment, patient=patient_info, medicines=medicines_list)
     except Exception as e:
         print(f"Error downloading prescription: {e}")
         return redirect(url_for('patient_dashboard'))
@@ -374,6 +427,7 @@ def patient_dashboard():
         return redirect(url_for('login'))
 
     appointments_list = []
+    medicines_map = {}
     health_id = session.get('health_id')
     if health_id:
         try:
@@ -381,12 +435,23 @@ def patient_dashboard():
             cursor = db.cursor(dictionary=True)
             cursor.execute("SELECT * FROM appointments WHERE health_id = %s ORDER BY id DESC", (health_id,))
             appointments_list = cursor.fetchall()
+
+            if appointments_list:
+                appt_ids = [a['id'] for a in appointments_list]
+                placeholders = ','.join(['%s'] * len(appt_ids))
+                cursor.execute(
+                    f"SELECT * FROM medicines WHERE appointment_id IN ({placeholders}) ORDER BY id ASC",
+                    tuple(appt_ids)
+                )
+                for row in cursor.fetchall():
+                    medicines_map.setdefault(row['appointment_id'], []).append(row)
+
             cursor.close()
             db.close()
         except Exception as e:
             print(f"Error fetching appointments: {e}")
 
-    return render_template("patient_dashboard.html", appointments=appointments_list)
+    return render_template("patient_dashboard.html", appointments=appointments_list, medicines_map=medicines_map)
 
 @app.route("/doctor/dashboard")
 def doctor_dashboard():
@@ -395,21 +460,26 @@ def doctor_dashboard():
 
     appointments_list = []
     doctors_list = []
+    medicines_map = {}
     try:
         db = get_db()
         cursor = db.cursor(dictionary=True)
         cursor.execute("SELECT * FROM appointments ORDER BY id DESC")
         appointments_list = cursor.fetchall()
-        
+
         cursor.execute("SELECT * FROM doctors ORDER BY name ASC")
         doctors_list = cursor.fetchall()
-        
+
+        cursor.execute("SELECT * FROM medicines ORDER BY id ASC")
+        for row in cursor.fetchall():
+            medicines_map.setdefault(row['appointment_id'], []).append(row)
+
         cursor.close()
         db.close()
     except Exception as e:
         print(f"Error fetching doctor data: {e}")
 
-    return render_template("doctor_dashboard.html", appointments=appointments_list, doctors=doctors_list)
+    return render_template("doctor_dashboard.html", appointments=appointments_list, doctors=doctors_list, medicines_map=medicines_map)
 
 @app.route("/patient/login", methods=["GET", "POST"])
 def patient_login():
@@ -452,18 +522,274 @@ def patient_login():
 
 @app.route("/admin/dashboard")
 def admin_dashboard():
-    doctors_list = []
+    if session.get('role') != 'admin':
+        return redirect(url_for('admin_login'))
+
+    doctors_list, patients_list, appointments_list, feedback_map = [], [], [], {}
+
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+
+    def run(sql):
+        try:
+            cursor.execute(sql)
+            return cursor.fetchall()
+        except Exception as e:
+            print(f"Admin query error: {e}\nSQL: {sql}")
+            return []
+
+    doctors_list = run("""
+        SELECT d.*,
+               (SELECT COUNT(*) FROM appointments a
+                WHERE a.doctor_name = d.name AND a.visit_done = 1) AS visit_count
+        FROM doctors d
+        ORDER BY d.id DESC
+    """)
+
+    patients_list = run("""
+        SELECT u.id AS user_id, u.username, p.health_id, p.name, p.phone, p.allergy_alerts
+        FROM patients p
+        LEFT JOIN users u ON p.user_id = u.id
+        ORDER BY p.id DESC
+    """)
+
+    appointments_list = run("SELECT * FROM appointments ORDER BY id DESC")
+
+    feedback_rows = run("""
+        SELECT doctor_name,
+               SUM(CASE WHEN rating = 'Good' THEN 1 ELSE 0 END) AS good_count,
+               SUM(CASE WHEN rating = 'Average' THEN 1 ELSE 0 END) AS average_count,
+               SUM(CASE WHEN rating = 'Poor' THEN 1 ELSE 0 END) AS poor_count,
+               COUNT(*) AS total_feedback
+        FROM feedback
+        GROUP BY doctor_name
+    """)
+    feedback_map = {row['doctor_name']: row for row in feedback_rows}
+
+    cursor.close()
+    db.close()
+
+    admin_msg = session.pop('admin_msg', None)
+    admin_msg_type = session.pop('admin_msg_type', None)
+
+    return render_template(
+        "admin_dashboard.html",
+        doctors=doctors_list, patients=patients_list,
+        appointments=appointments_list, feedback_map=feedback_map,
+        admin_msg=admin_msg, admin_msg_type=admin_msg_type
+    )
+
+@app.route("/admin/cancel-appointment/<int:appointment_id>", methods=["POST"])
+def admin_cancel_appointment(appointment_id):
+    if session.get('role') != 'admin':
+        return redirect(url_for('admin_login'))
+
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("UPDATE appointments SET status = 'Cancelled' WHERE id = %s", (appointment_id,))
+        db.commit()
+        cursor.close()
+        db.close()
+        session['admin_msg'] = f"Appointment #{appointment_id} cancelled."
+        session['admin_msg_type'] = 'success'
+    except Exception as e:
+        session['admin_msg'] = f"Error cancelling appointment: {e}"
+        session['admin_msg_type'] = 'error'
+
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route("/admin/change-password", methods=["POST"])
+def change_admin_password():
+    if session.get('role') != 'admin':
+        return redirect(url_for('admin_login'))
+
+    current_password = (request.form.get("current_password") or "").strip()
+    new_password = (request.form.get("new_password") or "").strip()
+    confirm_password = (request.form.get("confirm_password") or "").strip()
+
+    if not current_password or not new_password or not confirm_password:
+        session['admin_msg'] = "Please fill in all password fields."
+        session['admin_msg_type'] = 'error'
+        return redirect(url_for('admin_dashboard'))
+
+    if new_password != confirm_password:
+        session['admin_msg'] = "New password and confirmation do not match."
+        session['admin_msg_type'] = 'error'
+        return redirect(url_for('admin_dashboard'))
+
     try:
         db = get_db()
         cursor = db.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM doctors ORDER BY id DESC")
-        doctors_list = cursor.fetchall()
+        cursor.execute("SELECT * FROM users WHERE id = %s AND role = 'admin'", (session.get('user_id'),))
+        admin = cursor.fetchone()
+
+        if not admin or admin['password'] != current_password:
+            session['admin_msg'] = "Current password is incorrect."
+            session['admin_msg_type'] = 'error'
+        else:
+            cursor.execute("UPDATE users SET password = %s WHERE id = %s", (new_password, session.get('user_id')))
+            db.commit()
+            session['admin_msg'] = "Password updated successfully."
+            session['admin_msg_type'] = 'success'
+
         cursor.close()
         db.close()
     except Exception as e:
-        print(f"Error fetching doctors for admin: {e}")
+        session['admin_msg'] = f"Error updating password: {e}"
+        session['admin_msg_type'] = 'error'
 
-    return render_template("admin_dashboard.html", doctors=doctors_list)
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route("/admin/delete-patient/<int:user_id>", methods=["POST"])
+def delete_patient(user_id):
+    if session.get('role') != 'admin':
+        return redirect(url_for('admin_login'))
+
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("DELETE FROM users WHERE id = %s AND role = 'patient'", (user_id,))
+        db.commit()
+        cursor.close()
+        db.close()
+    except Exception as e:
+        print(f"Error deleting patient: {e}")
+
+    return redirect(url_for('admin_dashboard'))
+
+
+
+
+@app.route("/admin/delete-doctor/<int:doctor_id>", methods=["POST"])
+def delete_doctor(doctor_id):
+    if session.get('role') != 'admin':
+        return redirect(url_for('admin_login'))
+
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("DELETE FROM doctors WHERE id = %s", (doctor_id,))
+        db.commit()
+        cursor.close()
+        db.close()
+    except Exception as e:
+        print(f"Error deleting doctor: {e}")
+
+    return redirect(url_for('admin_dashboard'))
+
+
+
+
+
+
+
+@app.route("/feedback/<int:appointment_id>", methods=["GET"])
+def feedback_form(appointment_id):
+    if session.get('role') != 'patient':
+        return redirect(url_for('patient_login'))
+
+    appt = None
+    try:
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT * FROM appointments WHERE id = %s AND health_id = %s",
+            (appointment_id, session.get('health_id'))
+        )
+        appt = cursor.fetchone()
+        cursor.close()
+        db.close()
+    except Exception as e:
+        print(f"Error loading feedback form: {e}")
+
+    if not appt or appt['status'] != 'Confirmed' or appt.get('visit_done'):
+        return redirect(url_for('patient_dashboard'))
+
+    return render_template("feedback.html", appt=appt)
+
+
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    error = None
+    if request.method == "POST":
+        username = (request.form.get("username") or "").strip()
+        password = (request.form.get("password") or "").strip()
+
+        if not username or not password:
+            error = "Please enter both Username and Password."
+        else:
+            try:
+                db = get_db()
+                cursor = db.cursor(dictionary=True)
+                cursor.execute(
+                    "SELECT * FROM users WHERE username = %s AND password = %s AND role = 'admin'",
+                    (username, password)
+                )
+                admin = cursor.fetchone()
+                cursor.close()
+                db.close()
+
+                if admin:
+                    session['user_id'] = admin['id']
+                    session['username'] = admin['username']
+                    session['role'] = 'admin'
+                    return redirect(url_for('admin_dashboard'))
+                else:
+                    error = "Invalid Admin Username or Password."
+            except Exception as e:
+                error = f"Database Login Error: {e}"
+
+    return render_template("admin_login.html", error=error)
+
+
+
+
+
+
+@app.route("/feedback/submit", methods=["POST"])
+def submit_feedback():
+    if session.get('role') != 'patient':
+        return redirect(url_for('patient_login'))
+
+    appointment_id = request.form.get("appointment_id")
+    doctor_name = (request.form.get("doctor_name") or "").strip()
+    rating = (request.form.get("rating") or "").strip()
+    feedback_text = (request.form.get("feedback_text") or "").strip()
+    health_id = session.get('health_id')
+
+    if appointment_id and doctor_name and rating and health_id:
+        try:
+            db = get_db()
+            cursor = db.cursor()
+            cursor.execute(
+                "INSERT INTO feedback (appointment_id, health_id, doctor_name, rating, feedback_text) VALUES (%s, %s, %s, %s, %s)",
+                (appointment_id, health_id, doctor_name, rating, feedback_text)
+            )
+            cursor.execute(
+                "UPDATE appointments SET visit_done = 1 WHERE id = %s AND health_id = %s",
+                (appointment_id, health_id)
+            )
+            db.commit()
+            cursor.close()
+            db.close()
+        except Exception as e:
+            print(f"Error submitting feedback: {e}")
+
+    return redirect(url_for('patient_dashboard'))
+
+@app.route('/about')
+def about():
+    return render_template("about.html",titile="About Page")
+
+ 
+
+@app.route("/map")
+def hospital_map():
+    return render_template("map.html")
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -325,7 +325,7 @@
   /* Appointment Row */
   .appt-row {
     display: grid;
-    grid-template-columns: 60px 130px 1fr 130px 150px 100px;
+    grid-template-columns: 60px 120px 1fr 110px 110px 140px 90px;
     align-items: center;
     gap: 12px;
     padding: 15px 24px;
@@ -362,6 +362,8 @@
   .badge-mini.booked { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
   .badge-mini.confirmed { background: rgba(16,185,129,0.12); color: var(--emerald); border: 1px solid rgba(16,185,129,0.3); }
   .badge-mini.cancelled { background: rgba(244,63,94,0.12); color: var(--rose); border: 1px solid rgba(244,63,94,0.3); }
+  .badge-mini.done { background: rgba(59,130,246,0.12); color: var(--primary); border: 1px solid rgba(59,130,246,0.3); }
+  .badge-mini.pending { background: rgba(148,163,184,0.12); color: var(--text-muted); border: 1px solid rgba(148,163,184,0.3); }
 
   /* Feedback Tab */
   .feedback-grid {
@@ -576,16 +578,20 @@
             <div class="patient-avatar">{{ pat.name[0]|upper if pat.name else 'P' }}</div>
             <div>
               <div style="color:#fff; font-weight:600; font-size:0.92rem;">{{ pat.name }}</div>
-              <div style="color:var(--text-subtle); font-size:0.76rem;">{{ pat.username }}</div>
+              <div style="color:var(--text-subtle); font-size:0.76rem;">{{ pat.username or '—' }}</div>
             </div>
             <div class="patient-hid">{{ pat.health_id }}</div>
             <div style="color:var(--text-muted); font-size:0.86rem;">{{ pat.phone }}</div>
             <div>
               {% if pat.allergy_alerts %}<span class="allergy-flag">⚠ {{ pat.allergy_alerts }}</span>{% else %}<span class="no-allergy">None recorded</span>{% endif %}
             </div>
+            {% if pat.user_id %}
             <form action="{{ url_for('delete_patient', user_id=pat.user_id) }}" method="POST" onsubmit="return confirm('Remove patient {{ pat.name }} ({{ pat.health_id }})? This also deletes their login.');">
               <button type="submit" class="delete-btn">Remove</button>
             </form>
+            {% else %}
+            <div><span style="color:var(--text-subtle); font-size:0.76rem;">No login</span></div>
+            {% endif %}
           </div>
           {% endfor %}
         </div>
@@ -602,7 +608,7 @@
 
         {% if appointments and appointments|length > 0 %}
         <div class="appt-row head-row">
-          <div>ID</div><div>Health ID</div><div>Doctor</div><div>Status</div><div>Visit Time</div><div>Action</div>
+          <div>ID</div><div>Health ID</div><div>Doctor</div><div>Status</div><div>Visit</div><div>Visit Time</div><div>Action</div>
         </div>
         <div id="apptTableBody">
           {% for appt in appointments %}
@@ -614,6 +620,15 @@
               {% if appt.status == 'Confirmed' %}<span class="badge-mini confirmed">CONFIRMED</span>
               {% elif appt.status == 'Cancelled' %}<span class="badge-mini cancelled">CANCELLED</span>
               {% else %}<span class="badge-mini booked">BOOKED</span>{% endif %}
+            </div>
+            <div>
+              {% if appt.status == 'Cancelled' %}
+                <span style="color:var(--text-subtle); font-size:0.76rem;">—</span>
+              {% elif appt.visit_done %}
+                <span class="badge-mini done">VISIT DONE</span>
+              {% else %}
+                <span class="badge-mini pending">PENDING</span>
+              {% endif %}
             </div>
             <div style="color:var(--text-muted); font-size:0.8rem;">{{ appt.visit_time or '—' }}</div>
             <div>

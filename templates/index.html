@@ -415,10 +415,11 @@
       </a>
     </div>
 
-    <div class="role-chips">
-      <a href="{{ url_for('patient_login') }}" class="role-chip"><span class="dot" style="background:var(--primary);"></span>Patient Login</a>
+        <div class="role-chips">
+      <a href="{{ url_for('patient_login') }}" class="role-chip"><span class="dot" style="background:var(--primary, #22d3ee);"></span>Patient Login</a>
       <a href="{{ url_for('doctor_login') }}" class="role-chip"><span class="dot" style="background:var(--emerald);"></span>Doctor Login</a>
-      <a href="{{ url_for('admin_login') }}" class="role-chip"><span class="dot" style="background:var(--purple);"></span>Admin Login</a>
+      <a href="{{ url_for('admin_login') }}" class="role-chip"><span class="dot" style="background:var(--purple, #a78bfa);"></span>Admin Login</a>
+      <a href="{{ url_for('queue_display') }}" class="role-chip" style="border-color:rgba(236,72,153,0.4); color:#f9a8d4;"><span class="dot" style="background:#ec4899;"></span>Live Doctor Queue</a>
     </div>
   </section>
 

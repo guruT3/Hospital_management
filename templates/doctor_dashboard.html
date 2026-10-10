@@ -37,6 +37,16 @@
     border-radius: var(--radius-sm);
   }
 
+  .doc-msg {
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 22px;
+    font-size: 0.88rem;
+  }
+  .doc-msg.success { color: var(--emerald); background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); }
+  .doc-msg.error { color: var(--rose); background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.3); }
+  .doc-msg.info { color: #93c5fd; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); }
+
   .stats-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -59,10 +69,7 @@
     margin-bottom: 4px;
   }
 
-  .stat-lbl {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
+  .stat-lbl { font-size: 0.85rem; color: var(--text-muted); }
 
   .section-title {
     font-size: 1.4rem;
@@ -71,11 +78,171 @@
     margin-bottom: 20px;
   }
 
-  .appt-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+  /* ---------- Smart Digital Queue ---------- */
+  .queue-box {
+    background: var(--card-bg);
+    border: 1px solid rgba(236, 72, 153, 0.25);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 40px;
+    box-shadow: var(--shadow-card);
   }
+
+  .queue-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .queue-toolbar .section-title { margin: 0; }
+
+  .date-picker { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .date-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    text-decoration: none;
+  }
+  .date-chip:hover { color: #fff; border-color: var(--primary); }
+  .date-chip.active { color: #04141a; background: #ec4899; border-color: #ec4899; }
+
+  #qDate {
+    background: rgba(19, 27, 46, 0.9);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: #fff;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    color-scheme: dark;
+    outline: none;
+  }
+  #qDate:focus { border-color: var(--primary); }
+
+  .q-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .q-stat {
+    background: rgba(11, 15, 25, 0.6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    text-align: center;
+  }
+  .q-stat--now { border-color: rgba(236, 72, 153, 0.4); }
+  .q-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 1.7rem; font-weight: 800; color: #ec4899; }
+  .q-stat-val small { font-size: 0.8rem; color: var(--text-muted); }
+  .q-stat-lbl { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+  .q-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .q-bar-note { font-size: 0.82rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+  .q-live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--emerald);
+    box-shadow: 0 0 8px var(--emerald);
+    animation: q-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes q-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  .btn[disabled] { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+
+  .q-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .q-row {
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 14px;
+    background: rgba(11, 15, 25, 0.5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .q-row--in-consultation { border-color: rgba(236, 72, 153, 0.6); background: rgba(236, 72, 153, 0.07); }
+  .q-row--done { opacity: 0.6; }
+  .q-row--skipped { border-style: dashed; }
+
+  .q-token {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem; font-weight: 800;
+    color: #04141a;
+    background: var(--primary);
+  }
+  .q-row--in-consultation .q-token { background: #ec4899; }
+  .q-row--done .q-token { background: #475569; color: #e2e8f0; }
+
+  .q-info-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.84rem; color: var(--text-muted); }
+  .q-hid { font-family: 'JetBrains Mono', monospace; color: var(--primary); font-weight: 700; }
+  .q-sym { font-size: 0.86rem; color: #fff; margin-top: 3px; }
+  .q-eta { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; }
+
+  .q-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .q-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .q-inline { display: inline; margin: 0; }
+
+  .q-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .q-chip--now { color: #f9a8d4; background: rgba(236,72,153,0.14); border-color: rgba(236,72,153,0.4); }
+  .q-chip--wait { color: #fbbf24; background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); }
+  .q-chip--skip { color: #cbd5e1; background: rgba(148,163,184,0.12); border-color: rgba(148,163,184,0.3); }
+  .q-chip--done { color: var(--emerald); background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.3); }
+  .q-chip--emg { color: #fda4af; background: rgba(244,63,94,0.14); border-color: rgba(244,63,94,0.4); }
+  .q-chip--ok { color: var(--emerald); background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+
+  .q-btn {
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  .q-btn:hover { color: #fff; border-color: var(--primary); }
+  .q-btn--ok { color: var(--emerald); border-color: rgba(16,185,129,0.4); }
+  .q-btn--emg { color: #fda4af; border-color: rgba(244,63,94,0.35); }
+
+  .q-empty {
+    text-align: center;
+    padding: 28px;
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+  }
+
+  /* ---------- Consultation cards ---------- */
+  .appt-list { display: flex; flex-direction: column; gap: 20px; }
 
   .doctor-card {
     background: var(--card-bg);
@@ -126,16 +293,8 @@
     font-size: 0.88rem;
   }
 
-  .detail-item {
-    color: var(--text-muted);
-  }
-
-  .detail-item strong {
-    color: #ffffff;
-    display: block;
-    font-size: 0.95rem;
-    margin-top: 2px;
-  }
+  .detail-item { color: var(--text-muted); }
+  .detail-item strong { color: #ffffff; display: block; font-size: 0.95rem; margin-top: 2px; }
 
   .disease-box {
     background: rgba(11, 15, 25, 0.6);
@@ -144,6 +303,15 @@
     padding: 14px;
     margin-bottom: 16px;
     font-size: 0.9rem;
+  }
+
+  .future-note {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-size: 0.86rem;
   }
 
   .confirm-form-wrap {
@@ -161,11 +329,7 @@
     margin-bottom: 18px;
   }
 
-  .form-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
+  .form-field { display: flex; flex-direction: column; gap: 6px; }
 
   .form-field label {
     font-family: 'JetBrains Mono', monospace;
@@ -184,14 +348,10 @@
     outline: none;
   }
 
-  .form-field input:focus {
-    border-color: var(--primary);
-  }
+  .form-field input:focus { border-color: var(--primary); }
+  .form-field input[readonly] { opacity: 0.7; }
 
-  .medicine-section {
-    border-top: 1px solid rgba(255,255,255,0.08);
-    padding-top: 16px;
-  }
+  .medicine-section { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; }
 
   .medicine-section-head {
     display: flex;
@@ -249,9 +409,7 @@
 
   .remove-medicine-btn:hover { background: rgba(244, 63, 94, 0.18); }
 
-  .medicine-display {
-    margin-top: 4px;
-  }
+  .medicine-display { margin-top: 4px; }
 
   .medicine-pill {
     background: rgba(59,130,246,0.06);
@@ -266,18 +424,14 @@
   .medicine-pill strong { color: #fff; }
 
   @media (max-width: 840px) {
-    .stats-row {
-      grid-template-columns: 1fr;
-    }
-    .card-details-grid {
-      grid-template-columns: 1fr;
-    }
-    .confirm-form {
-      grid-template-columns: 1fr;
-    }
-    .medicine-row {
-      grid-template-columns: 1fr;
-    }
+    .stats-row { grid-template-columns: 1fr; }
+    .card-details-grid { grid-template-columns: 1fr; }
+    .confirm-form { grid-template-columns: 1fr; }
+    .medicine-row { grid-template-columns: 1fr; }
+    .q-summary { grid-template-columns: repeat(2, 1fr); }
+    .q-row { grid-template-columns: 44px 1fr; }
+    .q-side { grid-column: 1 / -1; align-items: flex-start; }
+    .q-actions { justify-content: flex-start; }
   }
 </style>
 {% endblock %}
@@ -297,61 +451,63 @@
     </div>
   </div>
 
-  <!-- Personalized Doctor Dashboard Summary Cards -->
+  {% if doc_msg %}
+  <div class="doc-msg {{ doc_msg_type or 'success' }}">{{ doc_msg }}</div>
+  {% endif %}
+
+  <!-- Summary Cards -->
   <div class="stats-row">
     <div class="dash-stat-card">
-      <div class="stat-val" style="color:var(--emerald);">
-        {% set my_count = namespace(val=0) %}
-        {% if appointments %}
-          {% for a in appointments %}
-            {% if a.doctor_name == session.get('username') %}
-              {% set my_count.val = my_count.val + 1 %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-        {{ my_count.val }}
-      </div>
+      <div class="stat-val" style="color:var(--emerald);">{{ confirmed_total }}</div>
       <div class="stat-lbl">Confirmed Visits by {{ session.get('username') }}</div>
     </div>
 
     <div class="dash-stat-card">
-      <div class="stat-val" style="color:#f59e0b;">
-        {% set pending_count = namespace(val=0) %}
-        {% if appointments %}
-          {% for a in appointments %}
-            {% if a.status != 'Confirmed' %}
-              {% set pending_count.val = pending_count.val + 1 %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-        {{ pending_count.val }}
-      </div>
-      <div class="stat-lbl">Pending Consultation Requests</div>
+      <div class="stat-val" style="color:#f59e0b;">{{ q.waiting_count }}</div>
+      <div class="stat-lbl">Patients Waiting on {{ qdate.strftime('%d %b') }}</div>
     </div>
 
     <div class="dash-stat-card">
-      <div class="stat-val" style="color:var(--primary);">
-        {{ appointments|length if appointments else 0 }}
-      </div>
-      <div class="stat-lbl">Total Patient Bookings</div>
+      <div class="stat-val" style="color:var(--primary);">{{ q.total }}</div>
+      <div class="stat-lbl">Total Bookings on {{ qdate.strftime('%d %b') }}</div>
     </div>
   </div>
 
-  <!-- Appointments Queue Section -->
-  <div class="section-title">Patient Consultations & Scheduling</div>
+  <!-- Smart Digital Queue -->
+  <div class="queue-box">
+    <div class="queue-toolbar">
+      <div class="section-title">Smart Digital Queue</div>
+      <div class="date-picker">
+        <a class="date-chip {% if is_today %}active{% endif %}" href="{{ url_for('doctor_dashboard') }}">Today</a>
+        <a class="date-chip {% if qdate == tomorrow %}active{% endif %}" href="{{ url_for('doctor_dashboard', date=tomorrow.isoformat()) }}">Tomorrow</a>
+        <input type="date" id="qDate" value="{{ qdate.isoformat() }}" max="{{ max_date.isoformat() }}" aria-label="Choose queue date">
+      </div>
+    </div>
+
+    <div id="queuePanel" data-date="{{ qdate.isoformat() }}">
+      {% include '_doctor_queue_panel.html' %}
+    </div>
+  </div>
+
+  <!-- Consultations -->
+  <div class="section-title">Patient Consultations & Prescriptions</div>
 
   {% if appointments and appointments|length > 0 %}
   <div class="appt-list">
     {% for appt in appointments %}
+    {% set is_future = appt.appointment_date and appt.appointment_date > today %}
     <div class="doctor-card">
       <div class="card-top">
         <div style="font-family:'JetBrains Mono', monospace; font-size:0.9rem; font-weight:700; color:var(--primary);">
-          APPOINTMENT #{{ appt.id }}
+          APPOINTMENT #{{ appt.id }}{% if appt.token_no %} · TOKEN #{{ appt.token_no }}{% else %} · NO TOKEN (OLD BOOKING){% endif %}
+          {% if appt.is_emergency %}<span class="q-chip q-chip--emg" style="margin-left:8px;">EMERGENCY</span>{% endif %}
         </div>
         {% if appt.status == 'Confirmed' %}
         <span class="badge-confirmed">✓ CONFIRMED BY {{ appt.doctor_name|upper }}</span>
+        {% elif appt.queue_status == 'In Consultation' %}
+        <span class="q-chip q-chip--now">IN CONSULTATION</span>
         {% else %}
-        <span class="badge-pending">⏳ PENDING SCHEDULE</span>
+        <span class="badge-pending">⏳ AWAITING CONSULTATION</span>
         {% endif %}
       </div>
 
@@ -365,8 +521,8 @@
           <strong>{{ appt.age }} Yrs · {{ appt.gender }}</strong>
         </div>
         <div class="detail-item">
-          Request Submitted
-          <strong style="font-family:'JetBrains Mono', monospace; font-size:0.85rem;">{{ appt.created_at }}</strong>
+          Appointment Date
+          <strong style="font-family:'JetBrains Mono', monospace; font-size:0.85rem;">{{ appt.appointment_date.strftime('%d %b %Y') if appt.appointment_date else '—' }}</strong>
         </div>
       </div>
 
@@ -384,7 +540,7 @@
           <div style="font-weight:700; color:#ffffff;">{{ appt.doctor_name }}</div>
         </div>
         <div>
-          <span style="font-family:'JetBrains Mono', monospace; font-size:0.75rem; color:var(--emerald);">SCHEDULED VISIT TIME:</span>
+          <span style="font-family:'JetBrains Mono', monospace; font-size:0.75rem; color:var(--emerald);">VISIT:</span>
           <div style="font-weight:700; color:var(--emerald);">{{ appt.visit_time }}</div>
         </div>
         <div>
@@ -410,20 +566,28 @@
       </div>
       {% endif %}
 
+      {% elif is_future %}
+      <div class="future-note">
+        📅 Scheduled for {{ appt.appointment_date.strftime('%d %b %Y') }}. The consultation form opens on the day of the visit.
+      </div>
+
       {% else %}
-      <!-- Inline Doctor Confirmation Form Personalized for Logged-In Doctor -->
+      <!-- Consultation / prescription form -->
       <form action="{{ url_for('confirm_appointment') }}" method="POST" class="confirm-form-wrap">
         <input type="hidden" name="appointment_id" value="{{ appt.id }}">
+        <input type="hidden" name="date" value="{{ qdate.isoformat() }}">
 
         <div class="confirm-form">
           <div class="form-field">
-            <label for="doc_{{ appt.id }}">Attending Doctor Name</label>
-            <input type="text" id="doc_{{ appt.id }}" name="doctor_name" value="{{ session.get('username', 'Doctor') }}" required>
+            <label for="doc_{{ appt.id }}">Attending Doctor</label>
+            <input type="text" id="doc_{{ appt.id }}" value="{{ session.get('username', 'Doctor') }}" readonly>
           </div>
 
           <div class="form-field">
-            <label for="time_{{ appt.id }}">Scheduled Visit Date & Time</label>
-            <input type="text" id="time_{{ appt.id }}" name="visit_time" placeholder="e.g. 15-Aug-2026 at 10:30 AM" required>
+            <label for="time_{{ appt.id }}">Visit Date & Time</label>
+            <input type="text" id="time_{{ appt.id }}" name="visit_time"
+                   value="{% if appt.token_no and appt.appointment_date %}{{ appt.appointment_date.strftime('%d-%b-%Y') }} · Token #{{ appt.token_no }}{% endif %}"
+                   placeholder="e.g. 15-Aug-2026 at 10:30 AM" required>
           </div>
         </div>
 
@@ -450,7 +614,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary" style="padding:10px 20px; font-size:0.85rem; margin-top:16px;">
-          Confirm Schedule & Prescription &rarr;
+          Confirm Visit & Prescription &rarr;
         </button>
       </form>
       {% endif %}
@@ -461,7 +625,7 @@
   {% else %}
   <div style="background:var(--card-bg); border:1px dashed var(--border); border-radius:var(--radius); padding:40px; text-align:center; color:var(--text-muted);">
     <h3 style="color:#ffffff; margin-bottom:6px;">No Patient Appointments Found</h3>
-    <p>There are no pending or confirmed appointment bookings in the database.</p>
+    <p>There are no bookings for you on {{ qdate.strftime('%d %b %Y') }}.</p>
   </div>
   {% endif %}
 </div>
@@ -484,5 +648,36 @@
       row.remove();
     }
   }
+
+  // Date picker -> reload dashboard for that date
+  (function () {
+    const picker = document.getElementById('qDate');
+    if (picker) {
+      picker.addEventListener('change', function () {
+        if (picker.value) {
+          window.location.href = "{{ url_for('doctor_dashboard') }}?date=" + encodeURIComponent(picker.value);
+        }
+      });
+    }
+  })();
+
+  // Live queue panel: refresh every 10 seconds
+  (function () {
+    const panel = document.getElementById('queuePanel');
+    if (!panel) return;
+    const date = panel.dataset.date;
+
+    async function refresh() {
+      if (document.hidden) return;
+      try {
+        const res = await fetch("{{ url_for('doctor_queue_panel') }}?date=" + encodeURIComponent(date), {
+          headers: { 'X-Requested-With': 'fetch' }
+        });
+        if (res.ok) panel.innerHTML = await res.text();
+      } catch (e) { /* network hiccup, try again next tick */ }
+    }
+
+    setInterval(refresh, 10000);
+  })();
 </script>
 {% endblock %}

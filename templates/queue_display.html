@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+
+{% block title %}Live Doctor Queue — MediQ{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* All selectors are prefixed with .qd- so nothing clashes with base.html */
+  .qd-wrap {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 36px 24px 40px;
+    background: transparent;
+  }
+  .qd-wrap:fullscreen {
+    background: radial-gradient(circle at 50% -10%, #12203a 0%, #060a13 55%);
+    max-width: none;
+    overflow-y: auto;
+    padding: 36px clamp(24px, 4vw, 60px);
+  }
+
+  .qd-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 26px;
+  }
+
+  .qd-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #f9a8d4;
+    background: rgba(236, 72, 153, 0.1);
+    border: 1px solid rgba(236, 72, 153, 0.32);
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+  }
+
+  .qd-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: qd-pulse 1.8s ease-in-out infinite;
+  }
+  .qd-dot.off { background: #f43f5e; box-shadow: 0 0 8px #f43f5e; animation: none; }
+  @keyframes qd-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .qd-head h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); font-weight: 800; line-height: 1.1; color: #fff; }
+  .qd-head p { color: var(--text-muted, #8da0b8); margin-top: 8px; font-size: 0.97rem; max-width: 560px; }
+
+  .qd-clock-box { text-align: right; }
+  #qdClock { font-family: 'JetBrains Mono', monospace; font-size: clamp(1.5rem, 3vw, 2.4rem); font-weight: 800; color: #fff; }
+  #qdDate { font-size: 0.86rem; color: var(--text-muted, #8da0b8); margin-top: 2px; }
+
+  .qd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 22px;
+    align-content: start;
+  }
+
+  .qd-card {
+    background: var(--card-bg, #0e1626);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.09));
+    border-radius: 20px;
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s ease;
+  }
+  .qd-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: #ec4899; opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .qd-card.live { border-color: rgba(236, 72, 153, 0.4); }
+  .qd-card.live::before { opacity: 1; }
+  .qd-card.idle { opacity: 0.55; }
+  .qd-card.changed { animation: qd-flash 2.4s ease; }
+  @keyframes qd-flash {
+    0%   { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.8); }
+    40%  { box-shadow: 0 0 0 14px rgba(236, 72, 153, 0), 0 0 60px rgba(236, 72, 153, 0.45); }
+    100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+  }
+
+  .qd-doc { font-size: clamp(1.15rem, 1.8vw, 1.5rem); font-weight: 800; color: #fff; }
+
+  .qd-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+    color: var(--text-muted, #8da0b8); text-transform: uppercase;
+  }
+
+  .qd-now { text-align: center; padding: 4px 0; }
+  .qd-token {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(4rem, 7vw, 6.5rem);
+    font-weight: 800; line-height: 1;
+    color: #ec4899;
+    margin-top: 6px;
+  }
+  .qd-token.empty { color: #3b4a63; }
+  .qd-sub { font-size: 0.9rem; color: var(--text-muted, #8da0b8); margin-top: 8px; min-height: 1.3em; }
+
+  .qd-next { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .qd-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(1rem, 1.4vw, 1.3rem); font-weight: 800;
+    padding: 6px 16px; border-radius: 999px;
+    color: #fbbf24; background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .qd-none { color: var(--text-muted, #8da0b8); font-size: 0.9rem; }
+
+  .qd-foot {
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding-top: 14px; border-top: 1px solid var(--border, rgba(255, 255, 255, 0.09));
+    font-size: 0.88rem; color: var(--text-muted, #8da0b8);
+  }
+  .qd-foot strong { color: #fff; font-family: 'JetBrains Mono', monospace; }
+
+  .qd-empty {
+    grid-column: 1 / -1; text-align: center; color: var(--text-muted, #8da0b8);
+    padding: 60px 20px; font-size: 1.05rem;
+    border: 1px dashed var(--border, rgba(255, 255, 255, 0.09)); border-radius: 20px;
+  }
+
+  .qd-bar {
+    display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-top: 26px;
+    font-size: 0.84rem; color: var(--text-muted, #8da0b8);
+  }
+  .qd-status { display: flex; align-items: center; gap: 8px; }
+  .qd-fs {
+    font-family: inherit; font-size: 0.8rem; font-weight: 700;
+    color: var(--text-muted, #8da0b8); background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.09)); border-radius: 8px;
+    padding: 6px 14px; cursor: pointer;
+  }
+  .qd-fs:hover { color: #fff; border-color: #22d3ee; }
+
+  @media (max-width: 600px) {
+    .qd-clock-box { text-align: left; }
+    .qd-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="qd-wrap" id="qdWrap">
+
+  <div class="qd-head">
+    <div>
+      <span class="qd-eyebrow"><span class="qd-dot"></span>Live Queue</span>
+      <h1>Live Doctor Queue</h1>
+      <p>Please wait until your token number is called. This screen updates automatically.</p>
+    </div>
+    <div class="qd-clock-box">
+      <div id="qdClock">--:--:--</div>
+      <div id="qdDate">&nbsp;</div>
+    </div>
+  </div>
+
+  <div class="qd-grid" id="qdGrid">
+    <div class="qd-empty">Loading queue…</div>
+  </div>
+
+  <div class="qd-bar">
+    <div class="qd-status"><span class="qd-dot" id="qdStatusDot"></span><span id="qdStatusText">Connecting…</span></div>
+    <button type="button" class="qd-fs" id="qdFs">Full screen</button>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const grid = document.getElementById('qdGrid');
+  const dot = document.getElementById('qdStatusDot');
+  const statusText = document.getElementById('qdStatusText');
+  const clock = document.getElementById('qdClock');
+  const dateLabel = document.getElementById('qdDate');
+  const wrap = document.getElementById('qdWrap');
+  const lastServing = {};      // doctor -> last token shown, used to flash on change
+  let firstLoad = true;
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function tick() {
+    clock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  function buildCard(d) {
+    const live = d.now_serving != null;
+    const idle = d.total === 0;
+
+    const card = el('div', 'qd-card' + (live ? ' live' : '') + (idle ? ' idle' : ''));
+    card.append(el('div', 'qd-doc', d.doctor));
+
+    const now = el('div', 'qd-now');
+    now.append(el('div', 'qd-label', 'Now serving'));
+    now.append(el('div', 'qd-token' + (live ? '' : ' empty'), live ? '#' + d.now_serving : '—'));
+    let sub = '';
+    if (idle) sub = 'No patients booked today';
+    else if (!live && d.waiting > 0) sub = 'Waiting for the doctor to call the next patient';
+    else if (!live) sub = 'All patients seen for now';
+    now.append(el('div', 'qd-sub', sub));
+    card.append(now);
+
+    const next = el('div');
+    next.append(el('div', 'qd-label', 'Next in line'));
+    const row = el('div', 'qd-next');
+    if (d.next.length) {
+      d.next.forEach(function (t) { row.append(el('span', 'qd-chip', '#' + t)); });
+      if (d.waiting > d.next.length) row.append(el('span', 'qd-none', '+' + (d.waiting - d.next.length) + ' more'));
+    } else {
+      row.append(el('span', 'qd-none', 'No one waiting'));
+    }
+    next.append(row);
+    card.append(next);
+
+    const foot = el('div', 'qd-foot');
+    const w = el('span');
+    w.append(document.createTextNode('Waiting: '), el('strong', null, String(d.waiting)));
+    const e = el('span');
+    e.append(document.createTextNode('If you join now: ~'), el('strong', null, d.est_wait + ' min'));
+    foot.append(w, e);
+    card.append(foot);
+
+    return card;
+  }
+
+  async function refresh() {
+    try {
+      const res = await fetch("{{ url_for('api_queue_display') }}", {
+        headers: { 'Accept': 'application/json' }, cache: 'no-store'
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      dateLabel.textContent = data.date_label || '';
+      grid.replaceChildren();
+
+      if (!data.doctors.length) {
+        grid.append(el('div', 'qd-empty', 'No doctors are registered yet.'));
+      } else {
+        // doctors with patients first
+        const sorted = data.doctors.slice().sort(function (a, b) {
+          return (b.total > 0) - (a.total > 0) || a.doctor.localeCompare(b.doctor);
+        });
+        sorted.forEach(function (d) {
+          const card = buildCard(d);
+          const prev = lastServing[d.doctor];
+          if (!firstLoad && d.now_serving != null && prev !== d.now_serving) {
+            card.classList.add('changed');
+          }
+          lastServing[d.doctor] = d.now_serving;
+          grid.append(card);
+        });
+      }
+      firstLoad = false;
+
+      dot.classList.remove('off');
+      statusText.textContent = 'Live · updated ' + data.updated;
+    } catch (err) {
+      dot.classList.add('off');
+      statusText.textContent = 'Connection lost — retrying…';
+    }
+  }
+
+  refresh();
+  setInterval(refresh, 5000);
+
+  // Full screen just the queue area (hides the navbar for a clean TV view)
+  document.getElementById('qdFs').addEventListener('click', function () {
+    if (!document.fullscreenElement) {
+      if (wrap.requestFullscreen) wrap.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+})();
+</script>
+{% endblock %}

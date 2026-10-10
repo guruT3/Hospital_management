@@ -37,9 +37,7 @@
     border-radius: var(--radius-sm);
   }
 
-  .appointments-section {
-    margin-top: 30px;
-  }
+  .appointments-section { margin-top: 30px; }
 
   .section-title {
     font-size: 1.4rem;
@@ -69,9 +67,7 @@
     flex-direction: column;
   }
 
-  .appt-card:hover {
-    border-color: var(--primary);
-  }
+  .appt-card:hover { border-color: var(--primary); }
 
   .appt-header {
     display: flex;
@@ -80,6 +76,8 @@
     margin-bottom: 12px;
     padding-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
   .status-confirmed {
@@ -104,15 +102,65 @@
     border-radius: 4px;
   }
 
-  .appt-detail {
-    font-size: 0.88rem;
-    color: var(--text-muted);
-    margin-bottom: 6px;
+  .status-cancelled {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 700;
+    background: rgba(244, 63, 94, 0.12);
+    color: var(--rose);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
   }
 
-  .appt-detail strong {
-    color: #ffffff;
+  .token-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: #04141a;
+    background: #ec4899;
+    padding: 3px 9px;
+    border-radius: 999px;
   }
+
+  .appt-detail { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 6px; }
+  .appt-detail strong { color: #ffffff; }
+
+  /* ---------- Live queue box ---------- */
+  .queue-live {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    background: rgba(236, 72, 153, 0.06);
+    border: 1px solid rgba(236, 72, 153, 0.3);
+    font-size: 0.86rem;
+    color: var(--text-muted);
+  }
+  .queue-live.is-turn { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.5); }
+  .ql-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #f9a8d4;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .queue-live.is-turn .ql-title { color: var(--emerald); }
+  .ql-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor;
+    animation: ql-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes ql-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .ql-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; }
+  .ql-cell { background: rgba(11, 15, 25, 0.55); border-radius: 8px; padding: 10px 6px; }
+  .ql-val { font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; font-weight: 800; color: #fff; }
+  .ql-lbl { font-size: 0.7rem; margin-top: 2px; }
+  .ql-msg { color: #fff; font-weight: 600; line-height: 1.5; }
+  .ql-sub { margin-top: 6px; font-size: 0.78rem; }
 
   .doctor-schedule-box {
     margin-top: 14px;
@@ -148,13 +196,21 @@
     border-top: 1px solid rgba(16,185,129,0.2);
   }
 
-  .patient-medicine-pill {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    margin-bottom: 5px;
-  }
-
+  .patient-medicine-pill { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
   .patient-medicine-pill strong { color: #fff; }
+
+  .cancel-btn {
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--rose);
+    background: rgba(244, 63, 94, 0.08);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .cancel-btn:hover { background: rgba(244, 63, 94, 0.16); }
 </style>
 {% endblock %}
 
@@ -185,15 +241,19 @@
     {% if appointments and appointments|length > 0 %}
     <div class="appt-grid">
       {% for appt in appointments %}
+      {% set in_queue = appt.status != 'Cancelled' and appt.token_no and appt.queue_status in ('Waiting', 'In Consultation', 'Skipped') and appt.appointment_date and appt.appointment_date >= today %}
       <div class="appt-card">
         <div class="appt-header">
           <span style="font-family:'JetBrains Mono', monospace; font-size:0.8rem; font-weight:700; color:var(--primary);">
             #APPT-{{ appt.id }}
           </span>
-          {% if appt.status == 'Confirmed' %}
+          {% if appt.token_no %}<span class="token-chip">TOKEN #{{ appt.token_no }}</span>{% endif %}
+          {% if appt.status == 'Cancelled' %}
+          <span class="status-cancelled">✕ CANCELLED</span>
+          {% elif appt.status == 'Confirmed' %}
           <span class="status-confirmed">✓ CONFIRMED</span>
           {% else %}
-          <span class="status-pending">⏳ PENDING APPROVAL</span>
+          <span class="status-pending">⏳ IN QUEUE</span>
           {% endif %}
         </div>
 
@@ -203,19 +263,41 @@
         <div class="appt-detail">
           <strong>Age / Gender:</strong> {{ appt.age }} Yrs · {{ appt.gender }}
         </div>
+        {% if appt.doctor_name %}
+        <div class="appt-detail">
+          <strong>Doctor:</strong> {{ appt.doctor_name }}
+        </div>
+        {% endif %}
+        {% if appt.appointment_date %}
+        <div class="appt-detail">
+          <strong>Appointment Date:</strong> {{ appt.appointment_date.strftime('%d %b %Y') }}{% if appt.appointment_date == today %} (today){% endif %}
+        </div>
+        {% endif %}
         <div class="appt-detail" style="margin-top: 6px;">
           <strong>Disease / Symptoms:</strong><br>
           <span style="color:var(--text-main); font-size:0.9rem;">{{ appt.disease }}</span>
         </div>
 
+        {% if in_queue %}
+        <div class="queue-live" data-appt="{{ appt.id }}">
+          <div class="ql-title"><span class="ql-dot"></span>LIVE QUEUE</div>
+          <div class="ql-sub">Loading your queue position…</div>
+        </div>
+        {% endif %}
+
         <!-- Doctor Visit Schedule Details -->
-        {% if appt.status == 'Confirmed' %}
+        {% if appt.status == 'Cancelled' %}
+        <div class="doctor-schedule-box schedule-pending">
+          This appointment was cancelled.
+        </div>
+
+        {% elif appt.status == 'Confirmed' %}
         <div class="doctor-schedule-box schedule-confirmed">
           <div style="font-family:'JetBrains Mono', monospace; font-size:0.74rem; color:var(--emerald); font-weight:700; margin-bottom:4px;">
-            DOCTOR VISITING SCHEDULE
+            CONSULTATION DETAILS
           </div>
           <div><strong>Attending Doctor:</strong> {{ appt.doctor_name }}</div>
-          <div><strong>Scheduled Date & Time:</strong> <span style="color:var(--emerald); font-weight:700;">{{ appt.visit_time }}</span></div>
+          <div><strong>Visit:</strong> <span style="color:var(--emerald); font-weight:700;">{{ appt.visit_time }}</span></div>
 
           {% set meds = medicines_map.get(appt.id) %}
           {% if meds and meds|length > 0 %}
@@ -244,12 +326,24 @@
             {% endif %}
           </div>
         </div>
+
         {% else %}
         <div class="doctor-schedule-box schedule-pending">
           <div style="font-family:'JetBrains Mono', monospace; font-size:0.74rem; color:#f59e0b; font-weight:700; margin-bottom:2px;">
-            DOCTOR VISITING SCHEDULE
+            CONSULTATION STATUS
           </div>
-          <div>Doctor Name & Visit Time: <em>Awaiting doctor schedule confirmation</em></div>
+          {% if appt.queue_status == 'Done' %}
+          <div>Your consultation is finished. The prescription will appear here once your doctor confirms it.</div>
+          {% else %}
+          <div>Waiting for your turn. Your prescription will appear here after the consultation.</div>
+          {% endif %}
+
+          {% if appt.status == 'Booked' and appt.queue_status in ('Waiting', 'Skipped') %}
+          <form action="{{ url_for('patient_cancel_appointment', appointment_id=appt.id) }}" method="POST" style="margin-top:10px;"
+                onsubmit="return confirm('Cancel this appointment? Your token will be released.');">
+            <button type="submit" class="cancel-btn">Cancel appointment</button>
+          </form>
+          {% endif %}
         </div>
         {% endif %}
 
@@ -270,4 +364,94 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const boxes = document.querySelectorAll('.queue-live');
+  if (!boxes.length) return;
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function cell(value, label) {
+    const c = el('div', 'ql-cell');
+    c.append(el('div', 'ql-val', value), el('div', 'ql-lbl', label));
+    return c;
+  }
+
+  function render(box, it) {
+    box.replaceChildren();
+    box.dataset.live = '1';
+    box.classList.remove('is-turn');
+
+    const title = el('div', 'ql-title');
+    title.append(el('span', 'ql-dot'), document.createTextNode(
+      it.is_today ? 'LIVE QUEUE · ' + it.doctor.toUpperCase() : 'SCHEDULED · ' + it.doctor.toUpperCase()
+    ));
+    box.append(title);
+
+    if (!it.is_today) {
+      box.append(el('div', 'ql-msg', 'Your token #' + it.token + ' is reserved for ' + it.date_label + '.'));
+      box.append(el('div', 'ql-sub', 'The live queue and your waiting time will appear here on the morning of your visit.'));
+      return;
+    }
+
+    if (it.queue_status === 'In Consultation') {
+      box.classList.add('is-turn');
+      box.append(el('div', 'ql-msg', "It's your turn! Please go to the doctor's room now."));
+      return;
+    }
+
+    if (it.queue_status === 'Skipped') {
+      box.append(el('div', 'ql-msg', 'You were skipped for now.'));
+      box.append(el('div', 'ql-sub', "You'll be called again after the patients currently waiting. Please stay close, or check with reception."));
+    }
+
+    const grid = el('div', 'ql-grid');
+    grid.append(
+      cell(it.now_serving ? '#' + it.now_serving : '—', 'Now serving'),
+      cell(it.ahead != null ? String(it.ahead) : '—', 'Patients ahead'),
+      cell(it.wait_min != null ? '~' + it.wait_min + ' min' : '—', 'Est. wait')
+    );
+    box.append(grid);
+
+    const note = it.emergency ? 'Marked as emergency — you are prioritised.' :
+      (it.now_serving ? '' : 'The doctor has not started the queue yet.');
+    if (note) box.append(el('div', 'ql-sub', note));
+  }
+
+  async function refresh() {
+    if (document.hidden) return;
+    try {
+      const res = await fetch("{{ url_for('api_queue_mine') }}", { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      const byId = {};
+      data.items.forEach(function (i) { byId[String(i.id)] = i; });
+
+      let needsReload = false;
+      boxes.forEach(function (b) {
+        const it = byId[b.dataset.appt];
+        if (it) {
+          render(b, it);
+        } else if (b.dataset.live === '1') {
+          needsReload = true;   // this appointment just left the queue (finished/cancelled)
+        } else {
+          b.style.display = 'none';
+        }
+      });
+      if (needsReload) window.location.reload();
+    } catch (e) { /* ignore, retry next tick */ }
+  }
+
+  refresh();
+  setInterval(refresh, 10000);
+})();
+</script>
 {% endblock %}
